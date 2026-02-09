@@ -1,0 +1,24 @@
+[project]
+name = "kommies"
+version = "0.1.0"
+description = "Dependency Management for Kommies"
+authors = [
+    {name = "Shashwat Acharya",email = "shashwatacharya1@gmail.com"},
+    {name = "Vidit Pokhral",email = "viditpokhral@gmail.com"}
+]
+requires-python = ">=3.13"
+dependencies = [
+    "psycopg (>=3.3.2,<4.0.0)",
+    "django (>=6.0.2,<7.0.0)",
+    "fastapi (>=0.128.5,<0.129.0)",
+    "sqlalchemy (>=2.0.46,<3.0.0)",
+    "uvicorn (>=0.40.0,<0.41.0)",
+    "starlette (>=0.52.1,<0.53.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
