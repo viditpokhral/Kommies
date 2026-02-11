@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ─────────────────────────────────────────────────────
+  db:
+    image: postgres:14-alpine
+    container_name: comment_platform_db
+    environment:
+      POSTGRES_DB: comment_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vidit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./bootstrap.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI - Public Comment API ────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: comment_platform_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./api:/app
+      - /app/__pycache__
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://comment_platform:vidit!@localhost:5432/comment_platform
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8001
+      DEBUG: "true"
+      # SMTP (optional - leave blank for dev)
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - comment_platform
+
+  # ── Django - Admin Dashboard ────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: comment_platform_backend
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://comment_platform_admin:CHANGE_ME_ADMIN_PASSWORD_123!@db:5432/comment_platform
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      DEBUG: "true"
+      FASTAPI_URL: http://api:8000
+      ALLOWED_HOSTS: localhost,127.0.0.1
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks:
+      - comment_platform
+
+networks:
+  comment_platform:
+    driver: bridge
+
+volumes:
+  postgres_data:
