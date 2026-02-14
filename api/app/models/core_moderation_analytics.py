@@ -92,7 +92,8 @@ class Comment(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     thread = relationship("Thread", back_populates="comments")
-    replies = relationship("Comment", backref="parent", foreign_keys=[parent_id])
+    parent = relationship("Comment", remote_side=[id], back_populates="replies")
+    replies = relationship("Comment", back_populates="parent")
     votes = relationship("CommentVote", back_populates="comment", cascade="all, delete-orphan")
     history = relationship("CommentHistory", back_populates="comment", cascade="all, delete-orphan")
 

@@ -1,1 +1,192 @@
 .env
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Comment Platform - .gitignore
+# For Django (backend/) + FastAPI (api/) + PostgreSQL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual Environments ───────────────────────────────────────────────────────
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+poetry.lock
+
+# ── Django ─────────────────────────────────────────────────────────────────────
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+backend/staticfiles/
+backend/media/
+backend/logs/
+backend/*.log
+
+# Django migrations (optional - uncomment if you want to ignore migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# ── FastAPI / Uvicorn ──────────────────────────────────────────────────────────
+api/*.log
+api/logs/
+
+# ── Environment Variables ──────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+api/.env
+!.env.example
+!backend/.env.example
+!api/.env.example
+
+# ── IDE / Editors ──────────────────────────────────────────────────────────────
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ── OS Generated ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── Testing / Coverage ─────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+*.cover
+.cache
+nosetests.xml
+
+# ── Jupyter Notebooks ──────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Documentation ──────────────────────────────────────────────────────────────
+docs/_build/
+docs/.doctrees/
+site/
+
+# ── Database ───────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sql.backup
+pgdata/
+postgres-data/
+
+# ── Docker ─────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+.dockerignore
+
+# ── Node.js (if you add frontend later) ───────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ── Backup & Temporary Files ──────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.old
+*.orig
+*.backup
+*~
+
+# ── Compiled Files ─────────────────────────────────────────────────────────────
+*.pyc
+*.pyo
+*.pyd
+.Python
+.sass-cache/
+
+# ── Celery (if you add it later) ──────────────────────────────────────────────
+celerybeat-schedule
+celerybeat.pid
+
+# ── Local Configuration ────────────────────────────────────────────────────────
+local_settings.py
+settings_local.py
+config_local.py
+
+# ── Security / Secrets ─────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.crt
+secrets.json
+credentials.json
+
+# ── Misc ───────────────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+*.pot
+*.mo
