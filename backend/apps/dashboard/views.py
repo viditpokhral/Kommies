@@ -123,11 +123,23 @@ def moderation_queue(request, website_id):
 
 @login_required
 def moderate_comment(request, comment_id):
-    """Approve/reject a comment"""
+    """Approve/reject a comment - scoped to user's websites only"""
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
     
-    comment = get_object_or_404(Comment, id=comment_id)
+    # Security: Only allow moderation of comments from websites owned by this user
+    try:
+        comment = get_object_or_404(
+            Comment.select_related('thread__website__super_user'),
+            id=comment_id,
+            thread__website__super_user__email=request.user.email,
+            thread__website__deleted_at__isnull=True
+        )
+    except Comment.DoesNotExist:
+        return JsonResponse({
+            'error': 'Comment not found or you do not have permission to moderate it'
+        }, status=403)
+    
     action = request.POST.get('action')
     
     if action == 'approve':
