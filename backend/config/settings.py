@@ -7,6 +7,9 @@ import os
 import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured  # type: ignore
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -150,6 +153,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGIN_URL = '/accounts/login/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 
 # Default primary key field type

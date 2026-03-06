@@ -32,7 +32,7 @@ async def create_website(
         settings=payload.settings or {},
     )
     db.add(website)
-    await db.flush()
+    await db.commit()  # ← MUST BE commit, not flush
     await db.refresh(website)
     return website
 
@@ -90,8 +90,12 @@ async def update_website(
 
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(website, field, value)
+    
+    await db.commit()
+    await db.refresh(website)
+    await db.commit()
+    await db.refresh(website)
     return website
-
 
 @router.delete("/{website_id}", status_code=204)
 async def delete_website(
@@ -113,6 +117,8 @@ async def delete_website(
     from datetime import datetime
     website.deleted_at = datetime.utcnow()
     website.status = "deleted"
+    await db.commit()
+    await db.commit()
 
 
 @router.post("/{website_id}/rotate-keys", response_model=WebsiteSecretResponse)
@@ -134,4 +140,8 @@ async def rotate_api_keys(
 
     website.api_key = _generate_api_key("cpk")
     website.api_secret = _generate_api_key("cps")
+    await db.commit()
+    await db.refresh(website)
+    await db.commit()
+    await db.refresh(website)
     return website

@@ -93,7 +93,7 @@ class Comment(Base):
 
     thread = relationship("Thread", back_populates="comments")
     parent = relationship("Comment", remote_side=[id], back_populates="replies")
-    replies = relationship("Comment", back_populates="parent")
+    replies = relationship("Comment", back_populates="parent", lazy="selectin")
     votes = relationship("CommentVote", back_populates="comment", cascade="all, delete-orphan")
     history = relationship("CommentHistory", back_populates="comment", cascade="all, delete-orphan")
 

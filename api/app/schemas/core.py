@@ -92,12 +92,16 @@ class CommentResponse(BaseModel):
     is_edited: bool
     edited_at: Optional[datetime]
     created_at: datetime
-    replies: Optional[List["CommentResponse"]] = []
 
     model_config = {"from_attributes": True}
 
 
-CommentResponse.model_rebuild()
+class CommentTreeResponse(CommentResponse):
+    replies: Optional[List["CommentTreeResponse"]] = []
+
+
+
+CommentTreeResponse.model_rebuild()
 
 
 class VoteRequest(BaseModel):
