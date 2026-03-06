@@ -97,7 +97,7 @@ class WebsiteAdmin(admin.ModelAdmin):
     list_display = ['name', 'domain', 'owner_email', 'status_badge', 'total_comments', 'total_threads', 'created_at']
     list_filter = [ActiveFilter, 'status', 'created_at']
     search_fields = ['name', 'domain', 'super_user__email']
-    readonly_fields = ['id', 'api_key', 'api_secret', 'total_threads', 'total_comments', 'created_at', 'view_dashboard']
+    readonly_fields = ['id', 'api_key', 'api_secret', 'total_threads', 'total_comments', 'created_at', 'updated_at', 'view_dashboard']
     inlines = [ThreadInline]
     
     fieldsets = (
@@ -132,6 +132,9 @@ class WebsiteAdmin(admin.ModelAdmin):
     status_badge.short_description = 'Status'
     
     def view_dashboard(self, obj):
+        if not obj or not obj.id:
+            return "Save website first"
+        
         url = reverse('dashboard:website-detail', args=[obj.id])
         return format_html('<a href="{}" class="button">View Dashboard →</a>', url)
     view_dashboard.short_description = 'Actions'

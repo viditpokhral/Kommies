@@ -1,6 +1,7 @@
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy import select, func
 from uuid import UUID
 from datetime import datetime
@@ -73,6 +74,8 @@ async def list_comments(
     db: AsyncSession = Depends(get_db),
 ):
     website = await _get_website_by_api_key(api_key, db)
+    
+    # 1. Find the thread
     result = await db.execute(
         select(Thread).where(Thread.website_id == website.id, Thread.identifier == identifier)
     )
@@ -80,30 +83,40 @@ async def list_comments(
     if not thread:
         return PaginatedResponse(items=[], total=0, page=page, page_size=page_size, pages=0)
 
-    count_result = await db.execute(
-        select(func.count()).select_from(Comment).where(
-            Comment.thread_id == thread.id,
-            Comment.status == "published",
-            Comment.is_deleted == False,
-            Comment.parent_id.is_(None),
-        )
-    )
-    total = count_result.scalar()
+    # 2. Define shared filters for both queries
+    filters = [
+        Comment.thread_id == thread.id,
+        Comment.status == "published",
+        Comment.is_deleted == False,
+        Comment.parent_id.is_(None),
+    ]
+
+    # 3. Get total count (Simple query)
+    count_stmt = select(func.count()).select_from(Comment).where(*filters)
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar() or 0
+
+    # 4. Get paginated data with eager loading (Data query)
     offset = (page - 1) * page_size
-    comments_result = await db.execute(
-        select(Comment).where(
-            Comment.thread_id == thread.id,
-            Comment.status == "published",
-            Comment.is_deleted == False,
-            Comment.parent_id.is_(None),
-        ).order_by(Comment.created_at.asc()).offset(offset).limit(page_size)
+    comments_stmt = (
+        select(Comment)
+        .where(*filters)
+        .options(selectinload(Comment.replies)) # Load children nested
+        .order_by(Comment.created_at.asc())
+        .offset(offset)
+        .limit(page_size)
     )
+    comments_result = await db.execute(comments_stmt)
     comments = comments_result.scalars().all()
+
     return PaginatedResponse(
         items=[CommentResponse.model_validate(c) for c in comments],
-        total=total, page=page, page_size=page_size,
+        total=total, 
+        page=page, 
+        page_size=page_size,
         pages=(total + page_size - 1) // page_size,
     )
+
 
 
 @router.post("/{api_key}/threads/{identifier}/comments", response_model=CommentResponse, status_code=201)
