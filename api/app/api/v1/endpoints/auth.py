@@ -11,7 +11,7 @@ from app.core.security import (
 )
 from app.models import SuperUser, Session, AuditLog
 from app.schemas.auth import (
-    RegisterRequest, LoginRequest, TokenResponse, RefreshRequest,
+    RegisterRequest, LoginRequest, ResetPasswordRequest, TokenResponse, RefreshRequest,
     SuperUserResponse, SuperUserUpdate, PasswordChangeRequest,
     ForgotPasswordRequest,
 )
@@ -188,3 +188,62 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     user.email_verification_token = None
     user.status = "active"
     return {"message": "Email verified successfully"}
+
+
+@router.post("/forgot-password", status_code=200)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(SuperUser).where(
+            SuperUser.email == payload.email,
+            SuperUser.deleted_at.is_(None),
+        )
+    )
+    user = result.scalar_one_or_none()
+
+    # Always return 200 — never reveal if email exists (security)
+    if not user:
+        return {"message": "If that email exists, a reset link has been sent"}
+
+    reset_token = secrets.token_urlsafe(32)
+    user.password_reset_token = reset_token
+    user.password_reset_expires_at = datetime.utcnow() + timedelta(hours=1)
+
+    import asyncio
+    asyncio.create_task(email_service.send_password_reset(
+        email=user.email,
+        full_name=user.full_name,
+        token=reset_token,
+    ))
+
+    return {"message": "If that email exists, a reset link has been sent"}
+
+
+@router.post("/reset-password", status_code=200)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(SuperUser).where(
+            SuperUser.password_reset_token == payload.token,
+            SuperUser.deleted_at.is_(None),
+        )
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    if user.password_reset_expires_at < datetime.utcnow():
+        user.password_reset_token = None
+        user.password_reset_expires_at = None
+        raise HTTPException(status_code=400, detail="Reset token has expired. Request a new one.")
+
+    user.password_hash = get_password_hash(payload.new_password)
+    user.password_reset_token = None
+    user.password_reset_expires_at = None
+
+    return {"message": "Password reset successfully. You can now log in."}

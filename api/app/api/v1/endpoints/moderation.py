@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.models import SuperUser, Website, Comment, Thread, ModerationQueue, ModerationReport
-from app.schemas.core import CommentResponse, PaginatedResponse
+from app.schemas.core import CommentResponse, PaginatedResponse, ModerationReportResponse
 from app.api.deps import get_current_user
 from app.services.webhooks import webhook_service
 from app.services.email import email_service
@@ -160,8 +160,9 @@ async def list_reports(
         .where(Thread.website_id == website_id, ModerationReport.status == "pending")
         .order_by(ModerationReport.created_at.desc()).offset(offset).limit(page_size)
     )
+    reports = result.scalars().all()
     return PaginatedResponse(
-        items=result.scalars().all(),
+        items=[ModerationReportResponse.model_validate(r) for r in reports],
         total=total, page=page, page_size=page_size,
         pages=(total + page_size - 1) // page_size,
     )

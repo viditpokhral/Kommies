@@ -3,138 +3,152 @@
 {% block title %}Dashboard - Comment Platform{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-    <p class="mt-2 text-sm text-gray-600">Manage your websites and comments</p>
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+        <p class="mt-2 text-sm text-gray-600">Manage your websites and moderate comments.</p>
+    </div>
+    <div class="mt-4 sm:mt-0">
+        <a href="/admin/dashboard/website/add/" class="btn-primary inline-flex items-center">
+            <i class="fas fa-plus mr-2"></i> Add Website
+        </a>
+    </div>
 </div>
 
-<!-- Stats Overview -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="card p-6">
+    <div class="card p-6 border-l-4 border-l-blue-500 hover:shadow-md transition">
         <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <span class="text-4xl">🌐</span>
+            <div class="flex-shrink-0 p-3 bg-blue-50 rounded-lg">
+                <span class="text-2xl">🌐</span>
             </div>
             <div class="ml-5 w-0 flex-1">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Total Websites</dt>
-                    <dd class="text-3xl font-bold text-gray-900">{{ websites.count }}</dd>
+                    <dd class="text-2xl font-bold text-gray-900 mt-1">{{ websites.count }}</dd>
                 </dl>
             </div>
         </div>
     </div>
 
-    <div class="card p-6">
+    <div class="card p-6 border-l-4 border-l-indigo-500 hover:shadow-md transition">
         <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <span class="text-4xl">💬</span>
+            <div class="flex-shrink-0 p-3 bg-indigo-50 rounded-lg">
+                <span class="text-2xl">💬</span>
             </div>
             <div class="ml-5 w-0 flex-1">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Total Comments</dt>
-                    <dd class="text-3xl font-bold text-gray-900">{{ total_comments|default:0 }}</dd>
+                    <dd class="text-2xl font-bold text-gray-900 mt-1">{{ total_comments|default:0 }}</dd>
                 </dl>
             </div>
         </div>
     </div>
 
-    <div class="card p-6">
+    <div class="card p-6 border-l-4 border-l-purple-500 hover:shadow-md transition">
         <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <span class="text-4xl">📊</span>
+            <div class="flex-shrink-0 p-3 bg-purple-50 rounded-lg">
+                <span class="text-2xl">📊</span>
             </div>
             <div class="ml-5 w-0 flex-1">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Total Threads</dt>
-                    <dd class="text-3xl font-bold text-gray-900">{{ total_threads|default:0 }}</dd>
+                    <dd class="text-2xl font-bold text-gray-900 mt-1">{{ total_threads|default:0 }}</dd>
                 </dl>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Subscription Info -->
 {% if subscription %}
-<div class="card p-6 mb-8 border-l-4 border-indigo-500">
-    <div class="flex items-center justify-between">
+<div class="card p-6 mb-8 border-l-4 border-l-green-500 bg-gradient-to-r from-white to-gray-50">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h3 class="text-lg font-semibold text-gray-900">{{ subscription.plan.name }} Plan</h3>
+            <h3 class="text-lg font-bold text-gray-900">{{ subscription.plan.name }} Plan</h3>
             <p class="text-sm text-gray-600 mt-1">
-                Usage: {{ subscription.requests_used|default:0 }} / {{ subscription.requests_limit }} requests 
-                ({{ subscription.usage_percentage }}%)
+                Usage: <span class="font-medium text-gray-900">{{ subscription.requests_used|default:0 }}</span> / {{
+                subscription.requests_limit }} requests
             </p>
         </div>
-        <div class="text-right">
-            <span class="badge badge-{% if subscription.status == 'active' %}green{% else %}yellow{% endif %}">
+        <div class="mt-4 sm:mt-0 sm:text-right">
+            <span
+                class="badge badge-{% if subscription.status == 'active' %}green{% else %}yellow{% endif %} shadow-sm">
                 {{ subscription.status|upper }}
             </span>
-            <p class="text-xs text-gray-500 mt-2">Renews {{ subscription.current_period_end|date:"M d, Y" }}</p>
+            <p class="text-xs text-gray-500 mt-2 font-medium">Renews {{ subscription.current_period_end|date:"M d, Y" }}
+            </p>
         </div>
     </div>
-    <div class="mt-4">
-        <div class="w-full bg-gray-200 rounded-full h-2">
-            <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ subscription.usage_percentage }}%"></div>
+    <div class="mt-5">
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Capacity</span>
+            <span>{{ subscription.usage_percentage }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                style="width: {{ subscription.usage_percentage }}%"></div>
         </div>
     </div>
 </div>
 {% endif %}
 
-<!-- Websites List -->
 <div class="card">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Your Websites</h2>
-            <a href="/admin/dashboard/website/add/" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                <i class="fas fa-plus mr-2"></i> Add Website
-            </a>
-        </div>
+    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-lg font-bold text-gray-900">Your Websites</h2>
     </div>
     <div class="divide-y divide-gray-200">
         {% for website in websites %}
-        <div class="px-6 py-4 hover:bg-gray-50 transition">
-            <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        <a href="{% url 'dashboard:website-detail' website.id %}" class="hover:text-indigo-600">
+        <div class="px-6 py-5 hover:bg-gray-50 transition duration-150 ease-in-out group">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between">
+                <div class="flex-1 mb-4 sm:mb-0">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <a href="{% url 'dashboard:website-detail' website.id %}"
+                            class="hover:text-indigo-600 transition">
                             {{ website.name }}
                         </a>
                     </h3>
-                    <p class="text-sm text-gray-600 mt-1">
-                        <i class="fas fa-globe mr-1"></i> {{ website.domain }}
+                    <p class="text-sm text-gray-500 mt-1 flex items-center">
+                        <i class="fas fa-link text-gray-400 mr-2 text-xs"></i> {{ website.domain }}
                     </p>
                 </div>
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-8">
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ website.total_comments }}</div>
-                        <div class="text-xs text-gray-500">Comments</div>
+                        <div class="text-xl font-bold text-gray-900">{{ website.total_comments }}</div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Comments</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ website.total_threads }}</div>
-                        <div class="text-xs text-gray-500">Threads</div>
+                        <div class="text-xl font-bold text-gray-900">{{ website.total_threads }}</div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Threads</div>
                     </div>
                     {% if website.pending_count > 0 %}
                     <div class="text-center">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
                             {{ website.pending_count }} Pending
                         </span>
                     </div>
                     {% endif %}
-                    <div>
-                        <a href="{% url 'dashboard:website-detail' website.id %}" class="text-indigo-600 hover:text-indigo-700">
-                            <i class="fas fa-arrow-right"></i>
+                    <div class="pl-4 border-l border-gray-200">
+                        <a href="{% url 'dashboard:website-detail' website.id %}"
+                            class="text-gray-400 group-hover:text-indigo-600 transition p-2">
+                            <i class="fas fa-chevron-right"></i>
                         </a>
                     </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="px-6 py-12 text-center">
-            <span class="text-6xl">🌐</span>
-            <h3 class="mt-4 text-lg font-medium text-gray-900">No websites yet</h3>
-            <p class="mt-2 text-sm text-gray-600">Get started by adding your first website.</p>
-            <a href="/admin/dashboard/website/add/" class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                <i class="fas fa-plus mr-2"></i> Add Your First Website
-            </a>
+        <div class="px-6 py-16 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-4">
+                <span class="text-3xl">🌐</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">No websites yet</h3>
+            <p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto">Get started by adding your first website to begin
+                collecting and managing comments.</p>
+            <div class="mt-6">
+                <a href="/admin/dashboard/website/add/" class="btn-primary inline-flex items-center px-6">
+                    <i class="fas fa-plus mr-2"></i> Add Your First Website
+                </a>
+            </div>
         </div>
         {% endfor %}
     </div>

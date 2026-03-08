@@ -10,10 +10,10 @@ from typing import Optional
 from app.db.session import get_db
 from app.models import (
     Website, Thread, Comment, CommentHistory, CommentVote,
-    NotificationSettings, ModerationQueue,
+    NotificationSettings, ModerationQueue, ModerationReport,
 )
 from app.schemas.core import (
-    CommentCreate, CommentUpdate, CommentResponse,
+    CommentCreate, CommentUpdate, CommentResponse, FlagRequest,
     ThreadResponse, VoteRequest, PaginatedResponse,
 )
 from app.services.spam import spam_service
@@ -65,57 +65,51 @@ async def get_thread(api_key: str, identifier: str, db: AsyncSession = Depends(g
     return thread
 
 
-@router.get("/{api_key}/threads/{identifier}/comments", response_model=PaginatedResponse)
+@router.get("/{api_key}/threads/{identifier}/comments", response_model=None)
 async def list_comments(
     api_key: str,
     identifier: str,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(100, ge=1, le=500),  # higher default — fetch all for tree
     db: AsyncSession = Depends(get_db),
 ):
     website = await _get_website_by_api_key(api_key, db)
-    
-    # 1. Find the thread
+
     result = await db.execute(
         select(Thread).where(Thread.website_id == website.id, Thread.identifier == identifier)
     )
     thread = result.scalar_one_or_none()
     if not thread:
-        return PaginatedResponse(items=[], total=0, page=page, page_size=page_size, pages=0)
+        return {"items": [], "total": 0, "page": page, "page_size": page_size, "pages": 0}
 
-    # 2. Define shared filters for both queries
     filters = [
         Comment.thread_id == thread.id,
         Comment.status == "published",
         Comment.is_deleted == False,
-        Comment.parent_id.is_(None),
+        # ← NO parent_id filter, NO selectinload — flat fetch
     ]
 
-    # 3. Get total count (Simple query)
-    count_stmt = select(func.count()).select_from(Comment).where(*filters)
-    count_result = await db.execute(count_stmt)
+    count_result = await db.execute(
+        select(func.count()).select_from(Comment).where(*filters)
+    )
     total = count_result.scalar() or 0
 
-    # 4. Get paginated data with eager loading (Data query)
-    offset = (page - 1) * page_size
-    comments_stmt = (
+    comments_result = await db.execute(
         select(Comment)
         .where(*filters)
-        .options(selectinload(Comment.replies)) # Load children nested
         .order_by(Comment.created_at.asc())
-        .offset(offset)
+        .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    comments_result = await db.execute(comments_stmt)
     comments = comments_result.scalars().all()
 
-    return PaginatedResponse(
-        items=[CommentResponse.model_validate(c) for c in comments],
-        total=total, 
-        page=page, 
-        page_size=page_size,
-        pages=(total + page_size - 1) // page_size,
-    )
+    return {
+        "items": [CommentResponse.model_validate(c).model_dump() for c in comments],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size,
+    }
 
 
 
@@ -237,8 +231,15 @@ async def create_comment(
 
     # 6. Webhook
     await webhook_service.comment_created(website, comment, thread, db)
-    return comment
-
+    result = await db.execute(
+    select(Comment)
+    .options(
+        selectinload(Comment.replies).selectinload(Comment.replies)
+    )
+    .where(Comment.id == comment.id)
+)
+    return result.scalar_one()
+    
 
 @router.patch("/{api_key}/comments/{comment_id}", response_model=CommentResponse)
 async def edit_comment(
@@ -313,3 +314,101 @@ async def vote_comment(
     await db.flush()
     await db.refresh(comment)
     return comment
+
+
+@router.post("/{api_key}/comments/{comment_id}/flag", status_code=201)
+async def flag_comment(
+    api_key: str,
+    comment_id: UUID,
+    payload: FlagRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    website = await _get_website_by_api_key(api_key, db)
+
+    # Verify comment belongs to this website
+    result = await db.execute(
+        select(Comment)
+        .join(Thread, Thread.id == Comment.thread_id)
+        .where(
+            Comment.id == comment_id,
+            Thread.website_id == website.id,
+            Comment.is_deleted == False,
+        )
+    )
+    comment = result.scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    valid_reasons = ("spam", "offensive", "off_topic", "misinformation", "other")
+    if payload.reason not in valid_reasons:
+        raise HTTPException(status_code=400, detail=f"reason must be one of: {valid_reasons}")
+
+    # Check if already reported by same identifier
+    existing = await db.execute(
+        select(ModerationReport).where(
+            ModerationReport.comment_id == comment_id,
+            ModerationReport.reporter_identifier == payload.reporter_identifier,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="You have already reported this comment")
+
+    reporter_ip = str(request.client.host) if request.client else None
+
+    report = ModerationReport(
+        comment_id=comment_id,
+        reporter_identifier=payload.reporter_identifier,
+        reason=payload.reason,
+        description=payload.description,
+        reporter_ip=reporter_ip,
+        status="pending",
+    )
+    db.add(report)
+
+    # Also add to moderation queue so owner sees it
+    db.add(ModerationQueue(
+        comment_id=comment_id,
+        website_id=website.id,
+        reason=f"User report: {payload.reason}",
+        flagged_by="user_report",
+        severity="medium",
+    ))
+
+    return {"message": "Comment reported successfully"}
+
+
+@router.delete("/{api_key}/comments/{comment_id}", status_code=200)
+async def delete_own_comment(
+    api_key: str,
+    comment_id: UUID,
+    request: Request,
+    author_email: str = Query(..., description="Must match the email used when posting"),
+    db: AsyncSession = Depends(get_db),
+):
+    website = await _get_website_by_api_key(api_key, db)
+
+    result = await db.execute(
+        select(Comment)
+        .join(Thread, Thread.id == Comment.thread_id)
+        .where(
+            Comment.id == comment_id,
+            Thread.website_id == website.id,
+            Comment.is_deleted == False,
+        )
+    )
+    comment = result.scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # Verify ownership by email
+    if comment.author_email != author_email:
+        raise HTTPException(status_code=403, detail="You can only delete your own comments")
+
+    # Soft delete
+    comment.is_deleted = True
+    comment.deleted_at = datetime.utcnow()
+    comment.deleted_by = "author"
+    comment.status = "deleted"
+
+    return {"message": "Comment deleted successfully"}

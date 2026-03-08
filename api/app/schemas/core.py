@@ -80,17 +80,17 @@ class CommentUpdate(BaseModel):
 class CommentResponse(BaseModel):
     id: UUID
     thread_id: UUID
-    parent_id: Optional[UUID]
+    parent_id: Optional[UUID] = None
     author_name: str
-    author_website: Optional[str]
+    author_website: Optional[str] = None
     content: str
-    content_html: Optional[str]
+    content_html: Optional[str] = None
     status: str
     upvotes: int
     downvotes: int
     reply_count: int
     is_edited: bool
-    edited_at: Optional[datetime]
+    edited_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -98,7 +98,6 @@ class CommentResponse(BaseModel):
 
 class CommentTreeResponse(CommentResponse):
     replies: Optional[List["CommentTreeResponse"]] = []
-
 
 
 CommentTreeResponse.model_rebuild()
@@ -117,3 +116,23 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     pages: int
+
+# ── FLAG RESPONSE ───────────────────────────────────────────────────────────
+
+class FlagRequest(BaseModel):
+    reason: str  # spam, offensive, off_topic, misinformation, other
+    reporter_identifier: str
+    description: Optional[str] = None
+
+
+class ModerationReportResponse(BaseModel):
+    id: UUID
+    comment_id: UUID
+    reporter_identifier: Optional[str] = None
+    reporter_email: Optional[str] = None
+    reason: str
+    description: Optional[str] = None
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
