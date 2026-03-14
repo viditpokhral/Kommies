@@ -14,3 +14,4 @@ __all__ = [
     "ModerationRule", "ModerationQueue", "ModerationReport", "BannedEntity",
     "ApiRequest", "DailyUsage", "WebsiteStat",
 ]
+from app.models.auth_billing import SiteMember

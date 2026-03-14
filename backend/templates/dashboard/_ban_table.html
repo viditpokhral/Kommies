@@ -1,0 +1,43 @@
+{% if ban_list %}
+<div class="card overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+            <tr>
+                <th class="px-6 py-3 text-left">Type</th>
+                <th class="px-6 py-3 text-left">Value</th>
+                <th class="px-6 py-3 text-left">Reason</th>
+                <th class="px-6 py-3 text-left">Banned</th>
+                <th class="px-6 py-3 text-left"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for ban in ban_list %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3">
+                    <span class="px-2 py-1 rounded text-xs font-medium
+                        {% if ban.entity_type == 'email' %}bg-blue-100 text-blue-700
+                        {% elif ban.entity_type == 'ip' %}bg-orange-100 text-orange-700
+                        {% else %}bg-purple-100 text-purple-700{% endif %}">
+                        {{ ban.entity_type }}
+                    </span>
+                </td>
+                <td class="px-6 py-3 font-mono text-gray-900">{{ ban.entity_value }}</td>
+                <td class="px-6 py-3 text-gray-500">{{ ban.reason|default:"—" }}</td>
+                <td class="px-6 py-3 text-gray-400">{{ ban.created_at|date:"M j, Y" }}</td>
+                <td class="px-6 py-3 text-right">
+                    <button onclick="removeBan('{{ ban.id }}')"
+                        class="text-xs text-red-500 hover:text-red-700 font-medium">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card px-6 py-12 text-center text-gray-400">
+    <span class="text-4xl block mb-3">🚫</span>
+    No bans in this category.
+</div>
+{% endif %}

@@ -22,8 +22,8 @@
         <div class="text-sm text-gray-600 mt-1">Today</div>
     </div>
     <div class="card p-4">
-        <div class="text-3xl font-bold text-yellow-600">{{ stats.pending }}</div>
-        <div class="text-sm text-gray-600 mt-1">Pending</div>
+        <div class="text-3xl font-bold text-yellow-600">{{ stats.flagged }}</div>
+        <div class="text-sm text-gray-600 mt-1">Flagged</div>
     </div>
     <div class="card p-4">
         <div class="text-3xl font-bold text-red-600">{{ stats.spam }}</div>
@@ -32,17 +32,17 @@
 </div>
 
 <!-- Quick Actions -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     <a href="{% url 'dashboard:moderation-queue' website.id %}" class="card p-6 hover:shadow-md transition">
         <div class="flex items-center">
             <span class="text-4xl mr-4">⚖️</span>
             <div>
                 <h3 class="font-semibold text-gray-900">Moderation Queue</h3>
-                <p class="text-sm text-gray-600">Review {{ stats.pending }} pending comments</p>
+                <p class="text-sm text-gray-600">Review {{ stats.flagged }} flagged comments</p>
             </div>
         </div>
     </a>
-    
+
     <a href="{% url 'dashboard:analytics' website.id %}" class="card p-6 hover:shadow-md transition">
         <div class="flex items-center">
             <span class="text-4xl mr-4">📊</span>
@@ -52,7 +52,17 @@
             </div>
         </div>
     </a>
-    
+
+    <a href="{% url 'dashboard:ban-list' website.id %}" class="card p-6 hover:shadow-md transition">
+        <div class="flex items-center">
+            <span class="text-4xl mr-4">🚫</span>
+            <div>
+                <h3 class="font-semibold text-gray-900">Ban List</h3>
+                <p class="text-sm text-gray-600">Manage banned emails, IPs, domains</p>
+            </div>
+        </div>
+    </a>
+
     <a href="/admin/dashboard/website/{{ website.id }}/change/" class="card p-6 hover:shadow-md transition">
         <div class="flex items-center">
             <span class="text-4xl mr-4">⚙️</span>
@@ -76,25 +86,19 @@
                 <div class="flex-1">
                     <div class="flex items-center space-x-2 mb-2">
                         <span class="font-medium text-gray-900">{{ comment.author_name }}</span>
-                        <span class="badge badge-{% if comment.status == 'published' %}green{% elif comment.status == 'pending' %}yellow{% else %}red{% endif %}">
+                        <span
+                            class="badge badge-{% if comment.status == 'published' %}green{% elif comment.status == 'pending' %}yellow{% else %}red{% endif %}">
                             {{ comment.status }}
                         </span>
                     </div>
                     <p class="text-sm text-gray-700">{{ comment.content|truncatewords:30 }}</p>
                     <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                         <span><i class="fas fa-clock mr-1"></i>{{ comment.created_at|timesince }} ago</span>
-                        <span><i class="fas fa-file-alt mr-1"></i>{{ comment.thread.title|default:comment.thread.identifier }}</span>
+                        <span><i class="fas fa-file-alt mr-1"></i>{{
+                            {{ comment.thread.title|default:comment.thread.identifier }}</span>
                         <span>👍 {{ comment.upvotes }} · 👎 {{ comment.downvotes }}</span>
                     </div>
                 </div>
-                {% if comment.status == 'pending' %}
-                <div class="ml-4">
-                    <button class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700" 
-                            onclick="moderateComment('{{ comment.id }}', 'approve')">
-                        Approve
-                    </button>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% empty %}
@@ -126,21 +130,21 @@
 
 {% block scripts %}
 <script>
-function moderateComment(commentId, action) {
-    fetch(`/dashboard/comment/${commentId}/moderate/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: `action=${action}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    });
-}
+    function moderateComment(commentId, action) {
+        fetch(`/dashboard/comment/${commentId}/moderate/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `action=${action}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+    }
 </script>
 {% endblock %}

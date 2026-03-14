@@ -165,3 +165,50 @@ class ModerationQueue(models.Model):
         managed = False
         db_table = 'moderation"."queue'
         ordering = ['-created_at']
+
+# ── Banned Entities ────────────────────────────────────────────────────────────
+
+class BannedEntity(models.Model):
+    ENTITY_TYPES = [('email', 'Email'), ('ip', 'IP Address'), ('domain', 'Domain')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, db_column='website_id')
+    entity_type = models.CharField(max_length=50, choices=ENTITY_TYPES)
+    entity_value = models.TextField()
+    reason = models.TextField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = False
+        db_table = 'moderation"."banned_entities'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.entity_type}: {self.entity_value}"
+
+class ModerationReport(models.Model):
+    REASON_CHOICES = [
+        ('spam', 'Spam'),
+        ('harassment', 'Harassment'),
+        ('hate_speech', 'Hate Speech'),
+        ('misinformation', 'Misinformation'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [('pending', 'Pending'), ('reviewed', 'Reviewed'), ('dismissed', 'Dismissed')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, db_column='comment_id')
+    reporter_identifier = models.CharField(max_length=255, null=True, blank=True)
+    reporter_email = models.CharField(max_length=255, null=True, blank=True)
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES)
+    description = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = False
+        db_table = 'moderation"."reports'
+        ordering = ['-created_at']

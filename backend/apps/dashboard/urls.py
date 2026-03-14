@@ -14,4 +14,9 @@ urlpatterns = [
     path('website/<uuid:website_id>/analytics/', views.analytics, name='analytics'),
     path('comment/<uuid:comment_id>/moderate/', views.moderate_comment, name='moderate-comment'),
     path('website/<uuid:website_id>/api-test/', views.api_test, name='api-test'),
+    path('website/<uuid:website_id>/bans/', views.ban_list, name='ban-list'),
+    path('website/<uuid:website_id>/bans/<uuid:ban_id>/remove/', views.ban_remove, name='ban-remove'),
 ]
+
+path('website/<uuid:website_id>/bans/', views.ban_list, name='ban-list'),
+path('website/<uuid:website_id>/bans/<uuid:ban_id>/remove/', views.ban_remove, name='ban-remove'),

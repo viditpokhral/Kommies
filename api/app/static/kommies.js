@@ -160,6 +160,23 @@
     return div.innerHTML;
   }
 
+  function getAuthoredComments() {
+    try { return JSON.parse(localStorage.getItem("kommies_authored") || "[]"); }
+    catch { return []; }
+  }
+
+  function markAuthored(commentId) {
+    const list = getAuthoredComments();
+    if (!list.includes(commentId)) {
+      list.push(commentId);
+      localStorage.setItem("kommies_authored", JSON.stringify(list));
+    }
+  }
+
+  function isAuthored(commentId) {
+    return getAuthoredComments().includes(commentId);
+  }
+
   function getVoterId() {
     let id = localStorage.getItem("kommies_vid");
     if (!id) {
@@ -167,6 +184,16 @@
       localStorage.setItem("kommies_vid", id);
     }
     return id;
+  }
+
+  function validate(name, email, content) {
+    if (!name) return "Name is required.";
+    if (name.length > 100) return "Name must be under 100 characters.";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address.";
+    if (!content) return "Comment cannot be empty.";
+    if (content.length < 2) return "Comment is too short.";
+    if (content.length > 5000) return "Comment must be under 5000 characters.";
+    return null;
   }
 
   async function api(method, path, body) {
@@ -217,6 +244,7 @@
          <div class="k-actions">
            <button class="k-btn-ghost" onclick="Kommies.showReplyForm('${c.id}')">💬 Reply</button>
            <button class="k-btn-ghost" onclick="Kommies.showFlagForm('${c.id}')">⚑ Flag</button>
+           ${isAuthored(c.id) ? `<button class="k-btn-ghost" style="color:#ea0027;" onclick="Kommies.deleteComment('${c.id}')">🗑 Delete</button>` : ""}
            ${c.is_edited ? '<span class="k-time">· edited</span>' : ""}
            ${isPending ? '<span class="k-pending">pending approval</span>' : ""}
          </div>
@@ -323,8 +351,8 @@
       const errEl = document.getElementById("k-error");
       const btn = document.getElementById("k-submit");
 
-      if (!name) { errEl.textContent = "Name is required."; return; }
-      if (!content) { errEl.textContent = "Comment cannot be empty."; return; }
+      const err = validate(name, email, content);
+      if (err) { errEl.textContent = err; return; }
       errEl.textContent = "";
       btn.disabled = true; btn.textContent = "Posting...";
 
@@ -335,6 +363,7 @@
         );
 
         THREAD_ID = comment.thread_id;
+        markAuthored(comment.id);
 
         const countEl = document.getElementById("k-count");
         if (countEl) {
@@ -390,8 +419,8 @@
       const content = (document.getElementById(`rc-${parentId}`)?.value || "").trim();
       const errEl = document.getElementById(`rerr-${parentId}`);
 
-      if (!name) { errEl.textContent = "Name is required."; return; }
-      if (!content) { errEl.textContent = "Reply cannot be empty."; return; }
+      const err = validate(name, email, content);
+      if (err) { errEl.textContent = err; return; }
       errEl.textContent = "";
 
       try {
@@ -400,6 +429,7 @@
           { author_name: name, author_email: email || null, content, parent_id: parentId }
         );
 
+        markAuthored(comment.id);
         this.hideReplyForm(parentId);
 
         // Inject reply into parent's children container
@@ -476,6 +506,24 @@
     hideFlagForm(commentId) {
       const el = document.getElementById(`kff-${commentId}`);
       if (el) el.innerHTML = "";
+    },
+
+    async deleteComment(commentId) {
+      if (!confirm("Delete your comment? This cannot be undone.")) return;
+      try {
+        await api("DELETE", `/comments/${cfg.api_key}/comments/${commentId}`);
+        // Update UI to show placeholder
+        const body = document.querySelector(`#kt-${commentId} .k-body`);
+        if (body) {
+          body.querySelector(".k-text") && (body.querySelector(".k-text").outerHTML = '<p class="k-text k-deleted">[comment deleted]</p>');
+          const actions = body.querySelector(".k-actions");
+          if (actions) actions.remove();
+        }
+        const scoreEl = document.getElementById(`ks-${commentId}`);
+        if (scoreEl) scoreEl.closest(".k-rail").querySelectorAll(".k-vote-btn").forEach(b => b.remove());
+      } catch (e) {
+        alert("Could not delete: " + e.message);
+      }
     },
 
     async submitFlag(commentId) {

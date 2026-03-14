@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Moderation Queue - {{ website.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <a href="{% url 'dashboard:website-detail' website.id %}" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
+            <i class="fas fa-arrow-left mr-1"></i> Back to {{ website.name }}
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900">Moderation Queue</h1>
+        <p class="mt-1 text-sm text-gray-600">{{ flagged_comments|length }} comment{{ flagged_comments|length|pluralize }} flagged for review</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="divide-y divide-gray-200" id="comments-container">
+        {% for comment in flagged_comments %}
+        <div class="px-6 py-5 hover:bg-gray-50 transition" id="row-{{ comment.id }}">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span class="text-sm font-bold text-indigo-600">{{ comment.author_name|first|upper }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <span class="font-semibold text-gray-900">{{ comment.author_name }}</span>
+                        {% if comment.author_email %}
+                        <span class="text-xs text-gray-500">{{ comment.author_email }}</span>
+                        {% endif %}
+                        <span class="badge badge-{% if comment.status == 'spam' %}red{% else %}yellow{% endif %}">
+                            {{ comment.status|upper }}
+                        {% if comment.report_count %}
+                        <span class="badge badge-orange">⚑ {{ comment.report_count }} report{{ comment.report_count|pluralize }}</span>
+                        {% endif %}
+                        {% if comment.report_count %}
+                        <span class="badge badge-orange">⚑ {{ comment.report_count }} report{{ comment.report_count|pluralize }}</span>
+                        {% endif %}
+                        </span>
+                        <span class="text-xs text-gray-400">
+                            <i class="fas fa-clock mr-1"></i>{{ comment.created_at|timesince }} ago
+                        </span>
+                    </div>
+                    <p class="text-gray-800 text-sm leading-relaxed mb-3">{{ comment.content }}</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span><i class="fas fa-file-alt mr-1"></i>{{ comment.thread.title|default:comment.thread.identifier|truncatechars:60 }}</span>
+                        {% if comment.author_ip %}
+                        <span><i class="fas fa-network-wired mr-1"></i>{{ comment.author_ip }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 flex-shrink-0">
+                    <button onclick="moderateComment('{{ comment.id }}', 'delete')"
+                        class="px-4 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                        <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
+                    <button onclick="moderateComment('{{ comment.id }}', 'spam')"
+                        class="px-4 py-1.5 text-xs font-semibold bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
+                        <i class="fas fa-ban mr-1"></i> Mark Spam
+                    </button>
+                    <button onclick="moderateComment('{{ comment.id }}', 'trash')"
+                        class="px-4 py-1.5 text-xs font-semibold bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+                        <i class="fas fa-archive mr-1"></i> Trash
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-6 py-20 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 mb-4">
+                <span class="text-3xl">✅</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">All clear!</h3>
+            <p class="mt-2 text-sm text-gray-500">No flagged comments to review.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+function moderateComment(commentId, action) {
+    if (!confirm(action + ' this comment?')) return;
+    fetch('/dashboard/comment/' + commentId + '/moderate/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+        body: 'action=' + action
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const row = document.getElementById('row-' + commentId);
+            row.style.transition = 'opacity 0.3s';
+            row.style.opacity = '0';
+            setTimeout(() => row.remove(), 300);
+        } else {
+            alert(data.error || 'Action failed');
+        }
+    });
+}
+</script>
+{% endblock %}

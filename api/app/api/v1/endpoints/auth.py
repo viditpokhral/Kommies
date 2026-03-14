@@ -79,7 +79,10 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     if user.locked_until and user.locked_until > datetime.utcnow():
         raise HTTPException(status_code=403, detail="Account locked. Try again later.")
 
-    if user.status not in ("active", "pending_verification"):
+    if user.status == "pending_verification":
+        raise HTTPException(status_code=403, detail="Please verify your email before logging in. Check your inbox.")
+
+    if user.status != "active":
         raise HTTPException(status_code=403, detail=f"Account is {user.status}")
 
     user.failed_login_attempts = 0
