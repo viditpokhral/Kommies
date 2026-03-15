@@ -6,6 +6,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
+from api.app.api.v1.endpoints import commenters
 from app.db.session import get_db
 from app.models.core_moderation_analytics import Website
 from app.models import (
@@ -168,9 +169,9 @@ async def create_comment(
     comment = Comment(
         thread_id=thread.id,
         parent_id=payload.parent_id,
-        commenter_id=commenter.id if commenter else None,
-        author_name=commenter.display_name if commenter else payload.author_name,
-        author_email=commenter.email if commenter else payload.author_email,
+        commenter_id=commenters.id if commenters else None,
+        author_name=commenters.display_name if commenters else payload.author_name,
+        author_email=commenters.email if commenters else payload.author_email,
         author_website=payload.author_website,
         author_ip=author_ip,
         author_user_agent=request.headers.get("user-agent"),
