@@ -30,6 +30,7 @@ class SuperUser(Base):
     last_login_ip = Column(INET)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime)
+    is_admin = Column(Boolean, default=False)
     metadata_ = Column("metadata", JSONB, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
@@ -144,3 +145,19 @@ class Invoice(Base):
     due_date = Column(DateTime)
     metadata_ = Column("metadata", JSONB, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SiteMember(Base):
+    __tablename__ = "site_members"
+    __table_args__ = (
+        __import__('sqlalchemy').UniqueConstraint("website_id", "super_user_id"),
+        {"schema": "auth"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    website_id = Column(UUID(as_uuid=True), ForeignKey("core.websites.id", ondelete="CASCADE"), nullable=False)
+    super_user_id = Column(UUID(as_uuid=True), ForeignKey("auth.super_users.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(50), nullable=False, default="moderator")  # owner | moderator | viewer
+    invited_by = Column(UUID(as_uuid=True), ForeignKey("auth.super_users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)

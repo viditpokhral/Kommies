@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <p class="mt-1 text-sm text-gray-500">Platform-wide overview</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'dashboard:admin-tenants' %}" class="btn-primary">Manage Tenants</a>
+        <a href="{% url 'dashboard:admin-comments' %}" class="btn-secondary">All Comments</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="card p-5 border-l-4 border-l-indigo-500">
+        <div class="text-3xl font-bold text-gray-900">{{ total_tenants }}</div>
+        <div class="text-sm text-gray-500 mt-1">Total Tenants</div>
+    </div>
+    <div class="card p-5 border-l-4 border-l-green-500">
+        <div class="text-3xl font-bold text-gray-900">{{ total_websites }}</div>
+        <div class="text-sm text-gray-500 mt-1">Websites</div>
+    </div>
+    <div class="card p-5 border-l-4 border-l-blue-500">
+        <div class="text-3xl font-bold text-gray-900">{{ total_comments }}</div>
+        <div class="text-sm text-gray-500 mt-1">Total Comments</div>
+    </div>
+    <div class="card p-5 border-l-4 border-l-red-500">
+        <div class="text-3xl font-bold text-gray-900">{{ spam_comments }}</div>
+        <div class="text-sm text-gray-500 mt-1">Spam Caught</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Recent Tenants</h2>
+        <a href="{% url 'dashboard:admin-tenants' %}" class="text-sm text-indigo-600 hover:underline">View all</a>
+    </div>
+    <div class="divide-y divide-gray-100">
+        {% for tenant in recent_tenants %}
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+            <div>
+                <div class="text-sm font-medium text-gray-900">{{ tenant.email }}</div>
+                <div class="text-xs text-gray-400">{{ tenant.full_name|default:"—" }} · Joined {{ tenant.created_at|date:"M j, Y" }}</div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="badge badge-{% if tenant.status == 'active' %}green{% else %}red{% endif %}">{{ tenant.status }}</span>
+                <a href="{% url 'dashboard:admin-tenant-detail' tenant.id %}" class="text-xs text-indigo-600 hover:underline">View</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-6 py-8 text-center text-gray-400">No tenants yet</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

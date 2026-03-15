@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import time
 
+from fastapi.staticfiles import StaticFiles
+
+from app.scheduler import start_scheduler, stop_scheduler
 from app.core.config import settings
 from app.api.v1.router import router as v1_router
 from app.db.session import engine
@@ -11,13 +14,19 @@ from app.db.session import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     print("Starting Comment Platform API...")
+    start_scheduler()
+
+    # Run stats immediately on startup so dashboard isn't empty
+    from app.scheduler import record_website_stats
+    import asyncio
+    asyncio.create_task(record_website_stats())
+
     yield
-    # Shutdown
+
+    stop_scheduler()
     await engine.dispose()
     print("Shutdown complete.")
-
 
 app = FastAPI(
     title="Comment Platform API",
@@ -31,8 +40,8 @@ app = FastAPI(
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],          # TODO - Change to settings.ALLOWED_ORIGINS in production, but allow all during development for ease of testing
+    allow_credentials=False,      # ← must be False when using wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -58,6 +67,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
 app.include_router(v1_router, prefix="/api")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 @app.get("/health", tags=["Health"])

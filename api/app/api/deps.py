@@ -4,9 +4,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 
+from fastapi import Request
+from app.models import Website
+
 from app.db.session import get_db
 from app.core.security import decode_token
 from app.models import SuperUser
+
+from app.models.auth_billing import SiteMember
+from app.models.core_moderation_analytics import Website
+from uuid import UUID as _UUID
+
+
+from fastapi import Request
+from app.models import Website
+
+from app.models.core_moderation_analytics import CommenterAccount
 
 bearer_scheme = HTTPBearer()
 
@@ -44,3 +57,182 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Account is {user.status}")
 
     return user
+
+
+
+async def check_origin(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    For public comment endpoints keyed by api_key:
+    If the website has allowed_origins set, reject requests from unlisted origins.
+    Allows requests with no Origin header (server-to-server / curl).
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return  # non-browser request, allow
+
+    # Extract api_key from path — works for all /{api_key}/... routes
+    api_key = request.path_params.get("api_key")
+    if not api_key:
+        return
+
+    result = await db.execute(
+        select(Website).where(Website.api_key == api_key, Website.deleted_at.is_(None))
+    )
+    website = result.scalar_one_or_none()
+    if not website:
+        return  # let the endpoint handle 404
+
+    allowed = website.allowed_origins or []
+    if not allowed:
+        return  # no restrictions configured — open access
+
+    # Normalise: strip trailing slash, lowercase
+    def normalise(o):
+        return o.rstrip("/").lower()
+
+    if normalise(origin) not in [normalise(o) for o in allowed]:
+        raise HTTPException(
+            status_code=403,
+            detail="Origin not allowed. Add your domain to the website's allowed origins.",
+        )
+
+
+ROLE_HIERARCHY = {"viewer": 0, "moderator": 1, "owner": 2}
+
+def require_role(min_role: str = "viewer"):
+    """
+    Dependency factory. Use as:
+        Depends(require_role("moderator"))
+    Returns (website, member) tuple.
+    """
+    async def _check(
+        website_id: _UUID,
+        db: AsyncSession = Depends(get_db),
+        current_user: SuperUser = Depends(get_current_user),
+    ):
+        # Check website exists
+        w_result = await db.execute(
+            select(Website).where(Website.id == website_id, Website.deleted_at.is_(None))
+        )
+        website = w_result.scalar_one_or_none()
+        if not website:
+            raise HTTPException(status_code=404, detail="Website not found")
+
+        # Check membership
+        m_result = await db.execute(
+            select(SiteMember).where(
+                SiteMember.website_id == website_id,
+                SiteMember.super_user_id == current_user.id,
+            )
+        )
+        member = m_result.scalar_one_or_none()
+
+        # Owner of the website always has access even without a site_member row
+        if not member:
+            if website.super_user_id == current_user.id:
+                # Auto-create owner membership
+                member = SiteMember(
+                    website_id=website_id,
+                    super_user_id=current_user.id,
+                    role="owner",
+                )
+                db.add(member)
+                await db.flush()
+            else:
+                raise HTTPException(status_code=403, detail="Access denied")
+
+        if ROLE_HIERARCHY.get(member.role, -1) < ROLE_HIERARCHY.get(min_role, 0):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Requires '{min_role}' role or higher. Your role: {member.role}"
+            )
+
+        return website, member
+
+    return _check
+
+
+async def require_admin(
+    current_user: SuperUser = Depends(get_current_user),
+) -> SuperUser:
+    if not getattr(current_user, 'is_admin', False):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+async def get_current_commenter(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> CommenterAccount:
+    """
+    Validates a CommenterAccount JWT (type: commenter_access).
+    Used on public comment endpoints when a logged-in commenter is posting/voting/flagging.
+    """
+    token = credentials.credentials
+    payload = decode_token(token)
+ 
+    if not payload or payload.get("type") != "commenter_access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired commenter token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+ 
+    commenter_id = payload.get("sub")
+    if not commenter_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+ 
+    result = await db.execute(
+        select(CommenterAccount).where(
+            CommenterAccount.id == UUID(commenter_id),
+            CommenterAccount.deleted_at.is_(None),
+        )
+    )
+    commenter = result.scalar_one_or_none()
+ 
+    if not commenter:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Commenter not found")
+    if commenter.is_banned:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account banned")
+    if not commenter.is_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
+ 
+    return commenter
+
+
+async def get_optional_commenter(
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    db: AsyncSession = Depends(get_db),
+) -> CommenterAccount | None:
+    """
+    Returns CommenterAccount if a valid commenter token is present, else None.
+    Used for routes that allow both guest and authenticated posting (allow_anonymous=True sites).
+    """
+    if credentials is None:
+        return None
+ 
+    payload = decode_token(credentials.credentials)
+    if not payload or payload.get("type") != "commenter_access":
+        return None
+ 
+    commenter_id = payload.get("sub")
+    if not commenter_id:
+        return None
+ 
+    try:
+        result = await db.execute(
+            select(CommenterAccount).where(
+                CommenterAccount.id == UUID(commenter_id),
+                CommenterAccount.deleted_at.is_(None),
+            )
+        )
+        commenter = result.scalar_one_or_none()
+        if commenter and not commenter.is_banned:
+            return commenter
+    except Exception:
+        pass
+ 
+    return None
+ 

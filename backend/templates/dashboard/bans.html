@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Bans – {{ website.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <a href="{% url 'dashboard:website-detail' website.id %}"
+            class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
+            <i class="fas fa-arrow-left mr-1"></i> Back to {{ website.name }}
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900">Ban List</h1>
+        <p class="mt-1 text-sm text-gray-600">{{ total }} active ban{{ total|pluralize }} — {{ website.domain }}</p>
+    </div>
+
+    <!-- Add ban form -->
+    <div class="card p-4 w-80">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">Add Ban</h2>
+        <form id="ban-form" class="space-y-2">
+            {% csrf_token %}
+            <select id="ban-type"
+                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="email">Email</option>
+                <option value="ip">IP Address</option>
+                <option value="domain">Domain</option>
+            </select>
+            <input id="ban-value" type="text" placeholder="value@example.com"
+                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input id="ban-reason" type="text" placeholder="Reason (optional)"
+                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button type="submit"
+                class="w-full px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition">
+                Ban
+            </button>
+        </form>
+        <p id="ban-msg" class="text-xs mt-2 hidden"></p>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="mb-6 border-b border-gray-200">
+    <nav class="flex gap-6 text-sm" id="tabs">
+        <button onclick="showTab('all')" class="tab-btn pb-3 border-b-2 border-indigo-600 font-semibold text-indigo-600"
+            data-tab="all">All ({{ total }})</button>
+        <button onclick="showTab('email')"
+            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="email">Email
+            ({{ by_type.email.count }})</button>
+        <button onclick="showTab('ip')"
+            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="ip">IP ({{
+            by_type.ip.count }})</button>
+        <button onclick="showTab('domain')"
+            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+            data-tab="domain">Domain ({{ by_type.domain.count }})</button>
+    </nav>
+</div>
+
+{% for tab, queryset in by_type.items %}
+<div class="tab-panel hidden" data-panel="{{ tab }}">
+    {% include "dashboard/_ban_table.html" with ban_list=queryset %}
+</div>
+{% endfor %}
+
+<div class="tab-panel" data-panel="all">
+    {% include "dashboard/_ban_table.html" with ban_list=bans %}
+</div>
+
+<script>
+    function showTab(name) {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            const active = b.dataset.tab === name;
+            b.classList.toggle('border-indigo-600', active);
+            b.classList.toggle('text-indigo-600', active);
+            b.classList.toggle('font-semibold', active);
+            b.classList.toggle('border-transparent', !active);
+            b.classList.toggle('text-gray-500', !active);
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => {
+            p.classList.toggle('hidden', p.dataset.panel !== name);
+        });
+    }
+
+    document.getElementById('ban-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.getElementById('ban-type').value;
+        const value = document.getElementById('ban-value').value.trim();
+        const reason = document.getElementById('ban-reason').value.trim();
+        const msg = document.getElementById('ban-msg');
+
+        if (!value) { msg.textContent = 'Value is required.'; msg.className = 'text-xs mt-2 text-red-600'; msg.classList.remove('hidden'); return; }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const res = await fetch(`/api/v1/moderation/{{ website.id }}/bans`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': '{{ website.api_key }}' },
+                body: JSON.stringify({ entity_type: type, entity_value: value, reason: reason || null }),
+            });
+            if (res.ok) {
+                msg.textContent = `${type} "${value}" banned. Refresh to see changes.`;
+                msg.className = 'text-xs mt-2 text-green-600';
+                document.getElementById('ban-value').value = '';
+                document.getElementById('ban-reason').value = '';
+            } else {
+                const data = await res.json();
+                msg.textContent = data.detail || 'Error adding ban.';
+                msg.className = 'text-xs mt-2 text-red-600';
+            }
+        } catch {
+            msg.textContent = 'Network error.';
+            msg.className = 'text-xs mt-2 text-red-600';
+        }
+        msg.classList.remove('hidden');
+    });
+
+    async function removeBan(banId) {
+        if (!confirm('Remove this ban?')) return;
+        const res = await fetch(`{% url 'dashboard:ban-remove' website.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', banId), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        });
+        if (res.ok) location.reload();
+        else alert('Failed to remove ban.');
+    }
+</script>
+{% endblock %}
