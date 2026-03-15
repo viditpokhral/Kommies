@@ -15,6 +15,12 @@ from app.models.auth_billing import SiteMember
 from app.models.core_moderation_analytics import Website
 from uuid import UUID as _UUID
 
+
+from fastapi import Request
+from app.models import Website
+
+from app.models.core_moderation_analytics import CommenterAccount
+
 bearer_scheme = HTTPBearer()
 
 
@@ -53,8 +59,6 @@ async def get_current_user(
     return user
 
 
-from fastapi import Request
-from app.models import Website
 
 async def check_origin(
     request: Request,
@@ -149,3 +153,86 @@ def require_role(min_role: str = "viewer"):
         return website, member
 
     return _check
+
+
+async def require_admin(
+    current_user: SuperUser = Depends(get_current_user),
+) -> SuperUser:
+    if not getattr(current_user, 'is_admin', False):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+async def get_current_commenter(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> CommenterAccount:
+    """
+    Validates a CommenterAccount JWT (type: commenter_access).
+    Used on public comment endpoints when a logged-in commenter is posting/voting/flagging.
+    """
+    token = credentials.credentials
+    payload = decode_token(token)
+ 
+    if not payload or payload.get("type") != "commenter_access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired commenter token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+ 
+    commenter_id = payload.get("sub")
+    if not commenter_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+ 
+    result = await db.execute(
+        select(CommenterAccount).where(
+            CommenterAccount.id == UUID(commenter_id),
+            CommenterAccount.deleted_at.is_(None),
+        )
+    )
+    commenter = result.scalar_one_or_none()
+ 
+    if not commenter:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Commenter not found")
+    if commenter.is_banned:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account banned")
+    if not commenter.is_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
+ 
+    return commenter
+
+
+async def get_optional_commenter(
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    db: AsyncSession = Depends(get_db),
+) -> CommenterAccount | None:
+    """
+    Returns CommenterAccount if a valid commenter token is present, else None.
+    Used for routes that allow both guest and authenticated posting (allow_anonymous=True sites).
+    """
+    if credentials is None:
+        return None
+ 
+    payload = decode_token(credentials.credentials)
+    if not payload or payload.get("type") != "commenter_access":
+        return None
+ 
+    commenter_id = payload.get("sub")
+    if not commenter_id:
+        return None
+ 
+    try:
+        result = await db.execute(
+            select(CommenterAccount).where(
+                CommenterAccount.id == UUID(commenter_id),
+                CommenterAccount.deleted_at.is_(None),
+            )
+        )
+        commenter = result.scalar_one_or_none()
+        if commenter and not commenter.is_banned:
+            return commenter
+    except Exception:
+        pass
+ 
+    return None
+ 

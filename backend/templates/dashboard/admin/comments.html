@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}All Comments — Admin{% endblock %}
+{% block content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <a href="{% url 'dashboard:admin-home' %}" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
+            <i class="fas fa-arrow-left mr-1"></i> Admin Home
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900">All Comments</h1>
+    </div>
+    <div class="flex gap-2">
+        {% for s in ""|ljust:"0" %}{% endfor %}
+        <a href="?status=" class="px-3 py-1.5 text-sm rounded-lg {% if not status_filter %}bg-indigo-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">All</a>
+        <a href="?status=published" class="px-3 py-1.5 text-sm rounded-lg {% if status_filter == 'published' %}bg-green-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">Published</a>
+        <a href="?status=spam" class="px-3 py-1.5 text-sm rounded-lg {% if status_filter == 'spam' %}bg-red-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">Spam</a>
+        <a href="?status=trash" class="px-3 py-1.5 text-sm rounded-lg {% if status_filter == 'trash' %}bg-gray-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">Trash</a>
+    </div>
+</div>
+
+<div class="card overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+            <tr>
+                <th class="px-6 py-3 text-left">Author</th>
+                <th class="px-6 py-3 text-left">Content</th>
+                <th class="px-6 py-3 text-left">Website</th>
+                <th class="px-6 py-3 text-left">Status</th>
+                <th class="px-6 py-3 text-left">Date</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for comment in comments %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3">
+                    <div class="font-medium text-gray-900">{{ comment.author_name }}</div>
+                    <div class="text-xs text-gray-400">{{ comment.author_email|default:"—" }}</div>
+                </td>
+                <td class="px-6 py-3 text-gray-700 max-w-xs truncate">{{ comment.content|truncatewords:15 }}</td>
+                <td class="px-6 py-3 text-gray-500">{{ comment.thread.website.name }}</td>
+                <td class="px-6 py-3">
+                    <span class="badge badge-{% if comment.status == 'published' %}green{% elif comment.status == 'spam' %}red{% else %}yellow{% endif %}">{{ comment.status }}</span>
+                </td>
+                <td class="px-6 py-3 text-gray-400">{{ comment.created_at|date:"M j, Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-6 py-12 text-center text-gray-400">No comments found</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

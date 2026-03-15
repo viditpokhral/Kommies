@@ -63,6 +63,16 @@
         </div>
     </a>
 
+    <a href="{% url 'dashboard:members-list' website.id %}" class="card p-6 hover:shadow-md transition">
+        <div class="flex items-center">
+            <span class="text-4xl mr-4">👥</span>
+            <div>
+                <h3 class="font-semibold text-gray-900">Team</h3>
+                <p class="text-sm text-gray-600">Manage moderators and viewers</p>
+            </div>
+        </div>
+    </a>
+
     <a href="/admin/dashboard/website/{{ website.id }}/change/" class="card p-6 hover:shadow-md transition">
         <div class="flex items-center">
             <span class="text-4xl mr-4">⚙️</span>

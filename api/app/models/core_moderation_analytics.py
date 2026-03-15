@@ -81,6 +81,7 @@ class Comment(Base):
     upvotes = Column(Integer, default=0)
     downvotes = Column(Integer, default=0)
     reply_count = Column(Integer, default=0)
+    commenter_id = Column(UUID(as_uuid=True), ForeignKey("core.commenter_accounts.id", ondelete="SET NULL"), nullable=True)
     is_edited = Column(Boolean, default=False)
     edited_at = Column(DateTime)
     edit_count = Column(Integer, default=0)
@@ -92,6 +93,7 @@ class Comment(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     thread = relationship("Thread", back_populates="comments")
+    commenter = relationship("CommenterAccount", back_populates="comments", lazy="selectin")
     parent = relationship("Comment", remote_side=[id], back_populates="replies")
     replies = relationship("Comment", back_populates="parent", lazy="selectin")
     votes = relationship("CommentVote", back_populates="comment", cascade="all, delete-orphan")
@@ -313,3 +315,29 @@ class WebsiteStat(Base):
     total_threads = Column(Integer, default=0)
     active_threads = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+
+class CommenterAccount(Base):
+    __tablename__ = "commenter_accounts"
+    __table_args__ = {"schema": "core"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False)
+    username = Column(String(100), unique=True, nullable=False)
+    display_name = Column(String(255))
+    password_hash = Column(String(255), nullable=False)
+    avatar_url = Column(Text)
+    bio = Column(Text)
+    status = Column(String(50), default="active")  # active | suspended | banned
+    email_verified = Column(Boolean, default=False)
+    email_verification_token = Column(String(255))
+    password_reset_token = Column(String(255))
+    password_reset_expires = Column(DateTime)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime)
+    last_login_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    deleted_at = Column(DateTime)
+
+    comments = relationship("Comment", back_populates="commenter", lazy="selectin")

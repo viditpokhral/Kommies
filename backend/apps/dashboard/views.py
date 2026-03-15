@@ -12,6 +12,16 @@ from datetime import timedelta
 from .models import Website, Thread, Comment, Subscription, ModerationQueue, ModerationReport
 import httpx
 
+# All access control comes from here now — no more inline admin_required definition
+from .access import (
+    admin_required,
+    moderator_required,
+    owner_required,
+    viewer_required,
+)
+
+
+# ── TENANT VIEWS ──────────────────────────────────────────────────────────────
 
 @login_required
 def dashboard_home(request):
@@ -46,13 +56,9 @@ def dashboard_home(request):
 
 
 @login_required
+@viewer_required
 def website_detail(request, website_id):
-    website = get_object_or_404(
-        Website,
-        id=website_id,
-        super_user__email=request.user.email,
-        deleted_at__isnull=True
-    )
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
 
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
@@ -88,8 +94,7 @@ def website_detail(request, website_id):
     }
 
     recent_threads = Thread.objects.filter(
-        website=website,
-        is_deleted=False
+        website=website, is_deleted=False
     ).order_by('-last_comment_at')[:10]
 
     recent_comments = Comment.objects.filter(
@@ -108,21 +113,16 @@ def website_detail(request, website_id):
 
 
 @login_required
+@moderator_required
 def moderation_queue(request, website_id):
-    website = get_object_or_404(
-        Website,
-        id=website_id,
-        super_user__email=request.user.email
-    )
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
 
-    # Comments marked spam/trash by moderator
     moderated = Comment.objects.filter(
         thread__website=website,
         status__in=('spam', 'trash'),
         is_deleted=False,
     ).select_related('thread')
 
-    # Comments reported by users that are still published (not yet actioned)
     reported_ids = ModerationReport.objects.filter(
         status='pending',
         comment__thread__website=website,
@@ -130,11 +130,8 @@ def moderation_queue(request, website_id):
         comment__is_deleted=False,
     ).values_list('comment_id', flat=True).distinct()
 
-    reported = Comment.objects.filter(
-        id__in=reported_ids,
-    ).select_related('thread')
+    reported = Comment.objects.filter(id__in=reported_ids).select_related('thread')
 
-    # Merge and deduplicate, most recent first
     from itertools import chain
     seen = set()
     merged = []
@@ -143,82 +140,67 @@ def moderation_queue(request, website_id):
             seen.add(c.id)
             merged.append(c)
 
-    # Attach report count to each comment
-    from django.db.models import Count as _Count
     report_counts = dict(
         ModerationReport.objects.filter(comment_id__in=[c.id for c in merged])
         .values('comment_id')
-        .annotate(n=_Count('id'))
+        .annotate(n=Count('id'))
         .values_list('comment_id', 'n')
     )
     for c in merged:
         c.report_count = report_counts.get(c.id, 0)
 
-    context = {
-        'website': website,
-        'flagged_comments': merged,
-    }
+    context = {'website': website, 'flagged_comments': merged}
     return render(request, 'dashboard/moderation_queue.html', context)
 
 
 @login_required
-def moderate_comment(request, comment_id):
+@moderator_required
+def moderate_comment(request, website_id, comment_id):
+    """
+    NOTE: website_id added to URL kwargs so @moderator_required can resolve it.
+    Update urls.py:
+        path('website/<uuid:website_id>/comment/<uuid:comment_id>/moderate/', views.moderate_comment)
+    """
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
 
-    # Fixed: was Comment.select_related(...) — missing .objects
     comment = get_object_or_404(
-        Comment.objects.select_related('thread__website__super_user'),
+        Comment.objects.select_related('thread__website'),
         id=comment_id,
-        thread__website__super_user__email=request.user.email,
-        thread__website__deleted_at__isnull=True,
+        thread__website_id=website_id,
         is_deleted=False,
     )
 
     action = request.POST.get('action')
-    valid_actions = ('spam', 'trash', 'delete')
-
-    if action not in valid_actions:
-        return JsonResponse({'error': f'Invalid action. Use: {valid_actions}'}, status=400)
+    if action not in ('spam', 'trash', 'delete'):
+        return JsonResponse({'error': 'Invalid action. Use: spam, trash, delete'}, status=400)
 
     was_published = comment.status == 'published'
 
     if action == 'delete':
         comment.is_deleted = True
         comment.status = 'deleted'
-        from django.utils import timezone as tz
-        comment.deleted_at = tz.now()
+        comment.deleted_at = timezone.now()
         comment.deleted_by = 'moderator'
     else:
         comment.status = action
 
     comment.save()
 
-    # Mark any pending user reports on this comment as reviewed
-    ModerationReport.objects.filter(
-        comment=comment, status='pending'
-    ).update(status='reviewed')
+    ModerationReport.objects.filter(comment=comment, status='pending').update(status='reviewed')
 
-    # Decrement thread comment_count if was published
     if was_published:
         Thread.objects.filter(id=comment.thread_id).update(
             comment_count=max(0, comment.thread.comment_count - 1)
         )
 
-    return JsonResponse({
-        'success': True,
-        'comment_id': str(comment.id),
-        'new_status': comment.status,
-    })
+    return JsonResponse({'success': True, 'comment_id': str(comment.id), 'new_status': comment.status})
 
 
 @login_required
+@viewer_required
 def analytics(request, website_id):
-    website = get_object_or_404(
-        Website,
-        id=website_id,
-        super_user__email=request.user.email
-    )
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
 
     thirty_days_ago = timezone.now() - timedelta(days=30)
 
@@ -245,7 +227,6 @@ def analytics(request, website_id):
         .order_by('-comment_count')[:10]
     )
 
-    # Spam rate
     total = Comment.objects.filter(thread__website=website).count() or 1
     spam_count = Comment.objects.filter(thread__website=website, status='spam').count()
     spam_rate = round((spam_count / total) * 100, 1)
@@ -277,43 +258,111 @@ def api_test(request, website_id):
 
 
 @login_required
+@moderator_required
 def ban_list(request, website_id):
-    website = get_object_or_404(
-        Website,
-        id=website_id,
-        super_user__email=request.user.email,
-        deleted_at__isnull=True,
-    )
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
     from .models import BannedEntity
     bans = BannedEntity.objects.filter(website=website, is_active=True)
-
     by_type = {
         'email':  bans.filter(entity_type='email'),
         'ip':     bans.filter(entity_type='ip'),
         'domain': bans.filter(entity_type='domain'),
     }
-
     return render(request, 'dashboard/bans.html', {
-        'website': website,
-        'bans': bans,
-        'by_type': by_type,
-        'total': bans.count(),
+        'website': website, 'bans': bans, 'by_type': by_type, 'total': bans.count(),
     })
 
 
 @login_required
+@moderator_required
 def ban_remove(request, website_id, ban_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
-
     from .models import BannedEntity
-    website = get_object_or_404(
-        Website,
-        id=website_id,
-        super_user__email=request.user.email,
-        deleted_at__isnull=True,
-    )
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
     ban = get_object_or_404(BannedEntity, id=ban_id, website=website)
     ban.is_active = False
     ban.save()
     return JsonResponse({'success': True})
+
+
+@login_required
+@owner_required
+def members_list(request, website_id):
+    website = get_object_or_404(Website, id=website_id, deleted_at__isnull=True)
+    from .models import SiteMember
+    members = SiteMember.objects.filter(website=website).select_related('super_user')
+    context = {'website': website, 'members': members}
+    return render(request, 'dashboard/members.html', context)
+
+
+# ── ADMIN VIEWS ───────────────────────────────────────────────────────────────
+
+@admin_required
+def admin_dashboard(request):
+    from .models import SuperUser
+    from django.db.models import Sum
+    total_tenants = SuperUser.objects.filter(deleted_at__isnull=True, is_admin=False).count()
+    total_websites = Website.objects.filter(deleted_at__isnull=True).count()
+    total_comments = Website.objects.filter(deleted_at__isnull=True).aggregate(
+        t=Sum('total_comments'))['t'] or 0
+    spam_comments = Comment.objects.filter(status='spam').count()
+    recent_tenants = SuperUser.objects.filter(
+        deleted_at__isnull=True, is_admin=False
+    ).order_by('-created_at')[:5]
+    context = {
+        'total_tenants': total_tenants,
+        'total_websites': total_websites,
+        'total_comments': total_comments,
+        'spam_comments': spam_comments,
+        'recent_tenants': recent_tenants,
+    }
+    return render(request, 'dashboard/admin/home.html', context)
+
+
+@admin_required
+def admin_tenants(request):
+    from .models import SuperUser
+    status_filter = request.GET.get('status', '')
+    tenants = SuperUser.objects.filter(deleted_at__isnull=True, is_admin=False)
+    if status_filter:
+        tenants = tenants.filter(status=status_filter)
+    tenants = tenants.annotate(
+        website_count=Count('website', filter=Q(website__deleted_at__isnull=True))
+    ).order_by('-created_at')
+    context = {'tenants': tenants, 'status_filter': status_filter}
+    return render(request, 'dashboard/admin/tenants.html', context)
+
+
+@admin_required
+def admin_tenant_detail(request, user_id):
+    from .models import SuperUser
+    tenant = get_object_or_404(SuperUser, id=user_id, deleted_at__isnull=True)
+    websites = Website.objects.filter(super_user=tenant, deleted_at__isnull=True).order_by('-created_at')
+    context = {'tenant': tenant, 'websites': websites}
+    return render(request, 'dashboard/admin/tenant_detail.html', context)
+
+
+@admin_required
+def admin_tenant_status(request, user_id):
+    from .models import SuperUser
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+    tenant = get_object_or_404(SuperUser, id=user_id, deleted_at__isnull=True)
+    new_status = request.POST.get('status')
+    if new_status not in ('active', 'suspended'):
+        return JsonResponse({'error': 'Invalid status'}, status=400)
+    tenant.status = new_status
+    tenant.save()
+    return JsonResponse({'success': True, 'status': new_status})
+
+
+@admin_required
+def admin_comments(request):
+    status_filter = request.GET.get('status', '')
+    comments = Comment.objects.filter(is_deleted=False).select_related('thread__website')
+    if status_filter:
+        comments = comments.filter(status=status_filter)
+    comments = comments.order_by('-created_at')[:100]
+    context = {'comments': comments, 'status_filter': status_filter}
+    return render(request, 'dashboard/admin/comments.html', context)

@@ -19,6 +19,7 @@ class SuperUser(models.Model):
     phone = models.CharField(max_length=50, null=True, blank=True)
     status = models.CharField(max_length=50, default='active')
     email_verified = models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -212,3 +213,23 @@ class ModerationReport(models.Model):
         managed = False
         db_table = 'moderation"."reports'
         ordering = ['-created_at']
+
+
+class SiteMember(models.Model):
+    ROLE_CHOICES = [('owner', 'Owner'), ('moderator', 'Moderator'), ('viewer', 'Viewer')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, db_column='website_id')
+    super_user = models.ForeignKey(SuperUser, on_delete=models.CASCADE, db_column='super_user_id', related_name='site_memberships')
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='moderator')
+    invited_by = models.UUIDField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'auth"."site_members'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.super_user.email} — {self.role} on {self.website.name}"

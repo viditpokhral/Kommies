@@ -168,8 +168,9 @@ async def create_comment(
     comment = Comment(
         thread_id=thread.id,
         parent_id=payload.parent_id,
-        author_name=payload.author_name,
-        author_email=payload.author_email,
+        commenter_id=commenter.id if commenter else None,
+        author_name=commenter.display_name if commenter else payload.author_name,
+        author_email=commenter.email if commenter else payload.author_email,
         author_website=payload.author_website,
         author_ip=author_ip,
         author_user_agent=request.headers.get("user-agent"),

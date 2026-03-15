@@ -30,6 +30,7 @@ class SuperUser(Base):
     last_login_ip = Column(INET)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime)
+    is_admin = Column(Boolean, default=False)
     metadata_ = Column("metadata", JSONB, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
