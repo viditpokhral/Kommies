@@ -6,7 +6,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
-from api.app.api.v1.endpoints import commenters
+from app.api.v1.endpoints import commenters
 from app.db.session import get_db
 from app.models.core_moderation_analytics import Website
 from app.models import (

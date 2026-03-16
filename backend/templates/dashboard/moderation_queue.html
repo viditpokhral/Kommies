@@ -1,102 +1,299 @@
 {% extends 'base.html' %}
-{% block title %}Moderation Queue - {{ website.name }}{% endblock %}
+
+{% block title %}Moderation — {{ website.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:website-detail' website.id %}">{{ website.name }}</a>
+<span class="sep">/</span>
+<span class="cur">Moderation</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mod-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px 20px;
+        transition: background .15s;
+    }
+
+    .mod-row:hover {
+        background: #faf9f7;
+    }
+
+    .mod-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fdf0ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .mod-avatar span {
+        font-family: 'Syne', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #e8673a;
+    }
+
+    .mod-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mod-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-bottom: 6px;
+    }
+
+    .mod-author {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .mod-email {
+        font-size: 11px;
+        color: #807b74;
+    }
+
+    .mod-time {
+        font-size: 11px;
+        color: #b8b2a9;
+    }
+
+    .mod-content {
+        font-size: 13px;
+        color: #1a1917;
+        line-height: 1.55;
+        margin-bottom: 8px;
+    }
+
+    .mod-thread {
+        font-size: 11px;
+        color: #807b74;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .mod-ip {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        color: #b8b2a9;
+    }
+
+    .mod-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .btn-spam {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 4px;
+        background: #fef5e4;
+        color: #a05c07;
+        border: none;
+        cursor: pointer;
+        transition: background .15s;
+        white-space: nowrap;
+    }
+
+    .btn-spam:hover {
+        background: #fde8b4;
+    }
+
+    .btn-trash {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 4px;
+        background: #eceae6;
+        color: #4a4640;
+        border: none;
+        cursor: pointer;
+        transition: background .15s;
+        white-space: nowrap;
+    }
+
+    .btn-trash:hover {
+        background: #dedad4;
+    }
+
+    .btn-delete {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 4px;
+        background: #fdecea;
+        color: #b83232;
+        border: none;
+        cursor: pointer;
+        transition: background .15s;
+        white-space: nowrap;
+    }
+
+    .btn-delete:hover {
+        background: #f5c6c3;
+    }
+
+    .queue-empty {
+        text-align: center;
+        padding: 64px 24px;
+    }
+
+    .queue-empty-icon {
+        font-size: 40px;
+        display: block;
+        margin-bottom: 12px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+
+<div class="page-hd">
     <div>
-        <a href="{% url 'dashboard:website-detail' website.id %}" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
-            <i class="fas fa-arrow-left mr-1"></i> Back to {{ website.name }}
-        </a>
-        <h1 class="text-3xl font-bold text-gray-900">Moderation Queue</h1>
-        <p class="mt-1 text-sm text-gray-600">{{ flagged_comments|length }} comment{{ flagged_comments|length|pluralize }} flagged for review</p>
+        <h1>Moderation Queue</h1>
+        <p>
+            {% if flagged_comments %}
+            {{ flagged_comments|length }} item{{ flagged_comments|length|pluralize }} pending review
+            {% else %}
+            Queue is clear
+            {% endif %}
+        </p>
     </div>
 </div>
 
 <div class="card">
-    <div class="divide-y divide-gray-200" id="comments-container">
+
+    <div class="divide-y" id="mod-list">
+
         {% for comment in flagged_comments %}
-        <div class="px-6 py-5 hover:bg-gray-50 transition" id="row-{{ comment.id }}">
-            <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span class="text-sm font-bold text-indigo-600">{{ comment.author_name|first|upper }}</span>
+        <div class="mod-row" id="row-{{ comment.id }}">
+
+            <div class="mod-avatar">
+                <span>{{ comment.author_name|slice:":1"|upper }}</span>
+            </div>
+
+            <div class="mod-body">
+                <div class="mod-meta">
+                    <span class="mod-author">{{ comment.author_name }}</span>
+                    {% if comment.author_email %}
+                    <span class="mod-email">{{ comment.author_email }}</span>
+                    {% endif %}
+
+                    {% if comment.status == 'spam' %}
+                    <span class="badge badge-yellow">spam</span>
+                    {% elif comment.status == 'trash' %}
+                    <span class="badge badge-gray">trash</span>
+                    {% else %}
+                    <span class="badge badge-published">published</span>
+                    {% endif %}
+
+                    {% if comment.report_count %}
+                    <span class="badge badge-orange">⚑ {{ comment.report_count }} report{{
+                        comment.report_count|pluralize }}</span>
+                    {% endif %}
+
+                    <span class="mod-time">{{ comment.created_at|timesince }} ago</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center flex-wrap gap-2 mb-2">
-                        <span class="font-semibold text-gray-900">{{ comment.author_name }}</span>
-                        {% if comment.author_email %}
-                        <span class="text-xs text-gray-500">{{ comment.author_email }}</span>
-                        {% endif %}
-                        <span class="badge badge-{% if comment.status == 'spam' %}red{% else %}yellow{% endif %}">
-                            {{ comment.status|upper }}
-                        {% if comment.report_count %}
-                        <span class="badge badge-orange">⚑ {{ comment.report_count }} report{{ comment.report_count|pluralize }}</span>
-                        {% endif %}
-                        {% if comment.report_count %}
-                        <span class="badge badge-orange">⚑ {{ comment.report_count }} report{{ comment.report_count|pluralize }}</span>
-                        {% endif %}
-                        </span>
-                        <span class="text-xs text-gray-400">
-                            <i class="fas fa-clock mr-1"></i>{{ comment.created_at|timesince }} ago
-                        </span>
-                    </div>
-                    <p class="text-gray-800 text-sm leading-relaxed mb-3">{{ comment.content }}</p>
-                    <div class="flex items-center gap-4 text-xs text-gray-500">
-                        <span><i class="fas fa-file-alt mr-1"></i>{{ comment.thread.title|default:comment.thread.identifier|truncatechars:60 }}</span>
-                        {% if comment.author_ip %}
-                        <span><i class="fas fa-network-wired mr-1"></i>{{ comment.author_ip }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="flex flex-col gap-2 flex-shrink-0">
-                    <button onclick="moderateComment('{{ comment.id }}', 'delete')"
-                        class="px-4 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                        <i class="fas fa-trash mr-1"></i> Delete
-                    </button>
-                    <button onclick="moderateComment('{{ comment.id }}', 'spam')"
-                        class="px-4 py-1.5 text-xs font-semibold bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
-                        <i class="fas fa-ban mr-1"></i> Mark Spam
-                    </button>
-                    <button onclick="moderateComment('{{ comment.id }}', 'trash')"
-                        class="px-4 py-1.5 text-xs font-semibold bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
-                        <i class="fas fa-archive mr-1"></i> Trash
-                    </button>
+
+                <p class="mod-content">{{ comment.content }}</p>
+
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                    <span class="mod-thread">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#b8b2a9" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        {{ comment.thread.title|default:comment.thread.identifier|truncatechars:60 }}
+                    </span>
+                    {% if comment.author_ip %}
+                    <span class="mod-ip">{{ comment.author_ip }}</span>
+                    {% endif %}
                 </div>
             </div>
+
+            <div class="mod-actions">
+                <button class="btn-delete" onclick="modAction('{{ comment.id }}', 'delete')">
+                    <i class="fas fa-trash" style="margin-right:4px;font-size:10px;"></i>Delete
+                </button>
+                <button class="btn-spam" onclick="modAction('{{ comment.id }}', 'spam')">
+                    <i class="fas fa-ban" style="margin-right:4px;font-size:10px;"></i>Spam
+                </button>
+                <button class="btn-trash" onclick="modAction('{{ comment.id }}', 'trash')">
+                    <i class="fas fa-archive" style="margin-right:4px;font-size:10px;"></i>Trash
+                </button>
+            </div>
+
         </div>
         {% empty %}
-        <div class="px-6 py-20 text-center">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 mb-4">
-                <span class="text-3xl">✅</span>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900">All clear!</h3>
-            <p class="mt-2 text-sm text-gray-500">No flagged comments to review.</p>
+        <div class="queue-empty">
+            <span class="queue-empty-icon">✅</span>
+            <h3 style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#1a1917;margin-bottom:6px;">
+                All clear</h3>
+            <p style="font-size:13px;color:#807b74;">No comments need review right now.</p>
         </div>
         {% endfor %}
+
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-const CSRF = '{{ csrf_token }}';
-function moderateComment(commentId, action) {
-    if (!confirm(action + ' this comment?')) return;
-    fetch('/dashboard/comment/' + commentId + '/moderate/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
-        body: 'action=' + action
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            const row = document.getElementById('row-' + commentId);
-            row.style.transition = 'opacity 0.3s';
-            row.style.opacity = '0';
-            setTimeout(() => row.remove(), 300);
-        } else {
-            alert(data.error || 'Action failed');
-        }
-    });
-}
+    const WEBSITE_ID = '{{ website.id }}';
+    const CSRF = '{{ csrf_token }}';
+
+    function modAction(commentId, action) {
+        if (!confirm(action + ' this comment?')) return;
+
+        fetch('/dashboard/comment/' + commentId + '/moderate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': CSRF,
+            },
+            body: 'action=' + action,
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.getElementById('row-' + commentId);
+                    row.style.transition = 'opacity .25s, max-height .3s';
+                    row.style.opacity = '0';
+                    row.style.overflow = 'hidden';
+                    setTimeout(() => {
+                        row.remove();
+                        const remaining = document.querySelectorAll('#mod-list .mod-row').length;
+                        if (remaining === 0) {
+                            document.getElementById('mod-list').innerHTML =
+                                '<div class="queue-empty"><span class="queue-empty-icon">✅</span>' +
+                                '<h3 style="font-family:\'Syne\',sans-serif;font-size:16px;font-weight:700;color:#1a1917;margin-bottom:6px;">All clear</h3>' +
+                                '<p style="font-size:13px;color:#807b74;">No comments need review right now.</p></div>';
+                        }
+                        window.toast(action.charAt(0).toUpperCase() + action.slice(1) + 'd', 'success');
+                    }, 280);
+                } else {
+                    window.toast(data.error || 'Action failed', 'error');
+                }
+            })
+            .catch(() => window.toast('Request failed', 'error'));
+    }
 </script>
 {% endblock %}

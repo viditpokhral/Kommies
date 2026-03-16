@@ -1,28 +1,20 @@
-{% extends "base.html" %}
-{% block title %}Log In - Comment Platform{% endblock %}
+{% extends "registration/auth_base.html" %}
+{% block title %}Sign In — Kommies{% endblock %}
 
-{% block content %}
-<div class="max-w-md mx-auto mt-10 card p-8">
-    <div class="text-center mb-8">
-        <span class="text-4xl">👋</span>
-        <h2 class="text-2xl font-bold text-gray-900 mt-4">Welcome back</h2>
-        <p class="text-sm text-gray-500 mt-2">Please enter your details to sign in.</p>
-    </div>
+{% block card %}
+<div class="auth-icon">👋</div>
+<div class="auth-title">Welcome back</div>
+<p class="auth-sub">Sign in to your Kommies account.</p>
 
-    <form method="post" class="space-y-4">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <div class="pt-2">
-            <button type="submit" class="btn-primary w-full">Log in</button>
-        </div>
-    </form>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn-auth btn-auth-primary" style="margin-top:8px;">Sign in</button>
+</form>
 
-    <div class="mt-6 text-center">
-        <p class="text-sm text-gray-600">
-            Forgot your password?
-            <a href="{% url 'password_reset' %}"
-                class="font-medium text-indigo-600 hover:text-indigo-500 transition">Reset it here</a>
-        </p>
-    </div>
+<div class="auth-divider"></div>
+<div style="text-align:center;font-size:13px;color:#807b74;">
+    Forgot your password?
+    <a href="{% url 'password_reset' %}" style="color:#e8673a;font-weight:500;">Reset it</a>
 </div>
 {% endblock %}

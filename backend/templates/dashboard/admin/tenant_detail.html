@@ -1,81 +1,178 @@
 {% extends 'base.html' %}
-{% block title %}{{ tenant.email }} — Admin{% endblock %}
-{% block content %}
-<div class="mb-8">
-    <a href="{% url 'dashboard:admin-tenants' %}" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
-        <i class="fas fa-arrow-left mr-1"></i> Back to Tenants
-    </a>
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ tenant.email }}</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ tenant.full_name|default:"No name" }} · {{ tenant.company_name|default:"No company" }}</p>
-        </div>
-        <div class="flex gap-3 items-center">
-            <span class="badge badge-{% if tenant.status == 'active' %}green{% else %}red{% endif %} text-sm px-3 py-1">{{ tenant.status }}</span>
-            {% if tenant.status == 'active' %}
-            <button onclick="setStatus('suspended')" class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Suspend</button>
-            {% else %}
-            <button onclick="setStatus('active')" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">Activate</button>
-            {% endif %}
-        </div>
-    </div>
-</div>
 
-<div class="grid grid-cols-3 gap-4 mb-8">
-    <div class="card p-5">
-        <div class="text-2xl font-bold text-gray-900">{{ websites.count }}</div>
-        <div class="text-sm text-gray-500 mt-1">Websites</div>
-    </div>
-    <div class="card p-5">
-        <div class="text-2xl font-bold text-gray-900">{{ tenant.email_verified|yesno:"✓,✗" }}</div>
-        <div class="text-sm text-gray-500 mt-1">Email Verified</div>
-    </div>
-    <div class="card p-5">
-        <div class="text-2xl font-bold text-gray-900">{{ tenant.created_at|date:"M j, Y" }}</div>
-        <div class="text-sm text-gray-500 mt-1">Joined</div>
-    </div>
-</div>
+{% block title %}{{ tenant.email }} — Tenant{% endblock %}
 
-<div class="card overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Websites</h2>
-    </div>
-    <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-            <tr>
-                <th class="px-6 py-3 text-left">Name</th>
-                <th class="px-6 py-3 text-left">Domain</th>
-                <th class="px-6 py-3 text-left">Comments</th>
-                <th class="px-6 py-3 text-left">Status</th>
-                <th class="px-6 py-3 text-left">Created</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-            {% for website in websites %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-3 font-medium text-gray-900">{{ website.name }}</td>
-                <td class="px-6 py-3 text-gray-500">{{ website.domain }}</td>
-                <td class="px-6 py-3 text-gray-500">{{ website.total_comments }}</td>
-                <td class="px-6 py-3"><span class="badge badge-{% if website.status == 'active' %}green{% else %}red{% endif %}">{{ website.status }}</span></td>
-                <td class="px-6 py-3 text-gray-400">{{ website.created_at|date:"M j, Y" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No websites</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:admin-home' %}">Admin</a>
+<span class="sep">/</span>
+<a href="{% url 'dashboard:admin-tenants' %}">Tenants</a>
+<span class="sep">/</span>
+<span class="cur">{{ tenant.email }}</span>
 {% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 16px;
+    }
+
+    .info-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 0;
+        border-bottom: 1px solid #e2deda;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        color: #807b74;
+    }
+
+    .info-value {
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .site-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        transition: background .15s;
+    }
+
+    .site-row:hover {
+        background: #faf9f7;
+    }
+
+    .site-name {
+        flex: 1;
+        font-weight: 500;
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .site-domain {
+        font-size: 12px;
+        color: #807b74;
+    }
+
+    .site-comments {
+        font-family: 'Syne', sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1a1917;
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-hd">
+    <div>
+        <h1>{{ tenant.email }}</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+        {% if tenant.status == 'active' %}
+        <button class="btn btn-danger btn-sm" onclick="setStatus('suspended')">Suspend</button>
+        {% else %}
+        <button class="btn btn-ghost btn-sm" onclick="setStatus('active')">Activate</button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- Info card -->
+    <div class="card card-p">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;margin-bottom:12px;">Account Info</div>
+        <div class="info-row">
+            <span class="info-label">Status</span>
+            <span>
+                {% if tenant.status == 'active' %}<span class="badge badge-green">active</span>
+                {% elif tenant.status == 'suspended' %}<span class="badge badge-red">suspended</span>
+                {% else %}<span class="badge badge-yellow">{{ tenant.status }}</span>{% endif %}
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-value">{{ tenant.email }}</span>
+        </div>
+        {% if tenant.get_full_name %}
+        <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-value">{{ tenant.get_full_name }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span class="info-label">Joined</span>
+            <span class="info-value">{{ tenant.created_at|date:"M j, Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Websites</span>
+            <span class="info-value">{{ websites.count }}</span>
+        </div>
+    </div>
+
+    <!-- Websites -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Websites</div>
+        </div>
+        <div class="divide-y">
+            {% for site in websites %}
+            <div class="site-row">
+                <div style="flex:1;min-width:0;">
+                    <div class="site-name">{{ site.name }}</div>
+                    <div class="site-domain">{{ site.domain }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="site-comments">{{ site.total_comments }}</div>
+                    <div style="font-size:10px;color:#807b74;text-transform:uppercase;letter-spacing:.5px;">comments
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state"><span class="empty-icon">🌐</span>
+                <h3>No websites</h3>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
 {% block scripts %}
 <script>
-async function setStatus(status) {
-    if (!confirm(`${status === 'suspended' ? 'Suspend' : 'Activate'} this tenant?`)) return;
-    const res = await fetch(`/dashboard/admin-panel/tenants/{{ tenant.id }}/status/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}'},
-        body: `status=${status}`
-    });
-    if ((await res.json()).success) location.reload();
-}
+    const CSRF = '{{ csrf_token }}';
+    const TENANT_ID = '{{ tenant.id }}';
+
+    function setStatus(status) {
+        if (!confirm('Set tenant to ' + status + '?')) return;
+        fetch('/dashboard/admin-panel/tenants/' + TENANT_ID + '/status/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'status=' + status,
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { window.location.reload(); }
+                else { window.toast(data.error || 'Failed', 'error'); }
+            });
+    }
 </script>
 {% endblock %}

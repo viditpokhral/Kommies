@@ -1,56 +1,123 @@
 {% extends 'base.html' %}
-{% block title %}Admin Dashboard{% endblock %}
+
+{% block title %}Platform Stats{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<span class="cur">Platform Stats</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tenant-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        transition: background .15s;
+    }
+
+    .tenant-row:hover {
+        background: #faf9f7;
+    }
+
+    .t-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #fdf0ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: 'Syne', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: #e8673a;
+    }
+
+    .t-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .t-email {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1a1917;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .t-joined {
+        font-size: 11px;
+        color: #b8b2a9;
+    }
+
+    .t-status {
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-8 flex items-center justify-between">
+
+<div class="page-hd">
     <div>
-        <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p class="mt-1 text-sm text-gray-500">Platform-wide overview</p>
-    </div>
-    <div class="flex gap-3">
-        <a href="{% url 'dashboard:admin-tenants' %}" class="btn-primary">Manage Tenants</a>
-        <a href="{% url 'dashboard:admin-comments' %}" class="btn-secondary">All Comments</a>
+        <h1>Platform Stats</h1>
+        <p>Overview of all tenants and activity.</p>
     </div>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="card p-5 border-l-4 border-l-indigo-500">
-        <div class="text-3xl font-bold text-gray-900">{{ total_tenants }}</div>
-        <div class="text-sm text-gray-500 mt-1">Total Tenants</div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Tenants</div>
+        <div class="stat-value">{{ total_tenants }}</div>
     </div>
-    <div class="card p-5 border-l-4 border-l-green-500">
-        <div class="text-3xl font-bold text-gray-900">{{ total_websites }}</div>
-        <div class="text-sm text-gray-500 mt-1">Websites</div>
+    <div class="stat-card">
+        <div class="stat-label">Total Websites</div>
+        <div class="stat-value">{{ total_websites }}</div>
     </div>
-    <div class="card p-5 border-l-4 border-l-blue-500">
-        <div class="text-3xl font-bold text-gray-900">{{ total_comments }}</div>
-        <div class="text-sm text-gray-500 mt-1">Total Comments</div>
+    <div class="stat-card">
+        <div class="stat-label">Total Comments</div>
+        <div class="stat-value">{{ total_comments }}</div>
     </div>
-    <div class="card p-5 border-l-4 border-l-red-500">
-        <div class="text-3xl font-bold text-gray-900">{{ spam_comments }}</div>
-        <div class="text-sm text-gray-500 mt-1">Spam Caught</div>
+    <div class="stat-card">
+        <div class="stat-label">Spam Comments</div>
+        <div class="stat-value">{{ spam_comments }}</div>
     </div>
 </div>
 
 <div class="card">
-    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-900">Recent Tenants</h2>
-        <a href="{% url 'dashboard:admin-tenants' %}" class="text-sm text-indigo-600 hover:underline">View all</a>
+    <div class="card-header">
+        <div class="card-title">Recent Tenants</div>
+        <a href="{% url 'dashboard:admin-tenants' %}" class="btn btn-ghost btn-sm">View all</a>
     </div>
-    <div class="divide-y divide-gray-100">
+    <div class="divide-y">
         {% for tenant in recent_tenants %}
-        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-            <div>
-                <div class="text-sm font-medium text-gray-900">{{ tenant.email }}</div>
-                <div class="text-xs text-gray-400">{{ tenant.full_name|default:"—" }} · Joined {{ tenant.created_at|date:"M j, Y" }}</div>
+        <a href="{% url 'dashboard:admin-tenant-detail' tenant.id %}" class="tenant-row">
+            <div class="t-avatar">{{ tenant.email|slice:":1"|upper }}</div>
+            <div class="t-info">
+                <div class="t-email">{{ tenant.email }}</div>
+                <div class="t-joined">Joined {{ tenant.created_at|date:"M j, Y" }}</div>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="badge badge-{% if tenant.status == 'active' %}green{% else %}red{% endif %}">{{ tenant.status }}</span>
-                <a href="{% url 'dashboard:admin-tenant-detail' tenant.id %}" class="text-xs text-indigo-600 hover:underline">View</a>
+            <div class="t-status">
+                {% if tenant.status == 'active' %}
+                <span class="badge badge-green">active</span>
+                {% elif tenant.status == 'suspended' %}
+                <span class="badge badge-red">suspended</span>
+                {% else %}
+                <span class="badge badge-gray">{{ tenant.status }}</span>
+                {% endif %}
             </div>
-        </div>
+        </a>
         {% empty %}
-        <div class="px-6 py-8 text-center text-gray-400">No tenants yet</div>
+        <div class="empty-state"><span class="empty-icon">👥</span>
+            <h3>No tenants yet</h3>
+        </div>
         {% endfor %}
     </div>
 </div>
+
 {% endblock %}

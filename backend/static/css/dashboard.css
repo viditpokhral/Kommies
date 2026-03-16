@@ -1,0 +1,20 @@
+/*
+  dashboard.css
+  Optional: load this in child templates via {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+  Or just keep everything in base.html — your call.
+
+  This file is the right place for:
+  - Page-specific overrides
+  - Chart.js canvas sizing
+  - Print styles
+*/
+
+/* Example: analytics chart canvas */
+.chart-wrap canvas {
+    max-height: 300px;
+}
+
+/* Example: moderation queue row highlight on hover */
+.mod-row:hover {
+    background: #faf9f7;
+}

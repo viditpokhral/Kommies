@@ -1,125 +1,325 @@
 {% extends 'base.html' %}
-{% block title %}Bans – {{ website.name }}{% endblock %}
 
-{% block content %}
-<div class="mb-8 flex items-center justify-between">
-    <div>
-        <a href="{% url 'dashboard:website-detail' website.id %}"
-            class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
-            <i class="fas fa-arrow-left mr-1"></i> Back to {{ website.name }}
-        </a>
-        <h1 class="text-3xl font-bold text-gray-900">Ban List</h1>
-        <p class="mt-1 text-sm text-gray-600">{{ total }} active ban{{ total|pluralize }} — {{ website.domain }}</p>
-    </div>
+{% block title %}Ban List — {{ website.name }}{% endblock %}
 
-    <!-- Add ban form -->
-    <div class="card p-4 w-80">
-        <h2 class="text-sm font-semibold text-gray-700 mb-3">Add Ban</h2>
-        <form id="ban-form" class="space-y-2">
-            {% csrf_token %}
-            <select id="ban-type"
-                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="email">Email</option>
-                <option value="ip">IP Address</option>
-                <option value="domain">Domain</option>
-            </select>
-            <input id="ban-value" type="text" placeholder="value@example.com"
-                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <input id="ban-reason" type="text" placeholder="Reason (optional)"
-                class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <button type="submit"
-                class="w-full px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition">
-                Ban
-            </button>
-        </form>
-        <p id="ban-msg" class="text-xs mt-2 hidden"></p>
-    </div>
-</div>
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:website-detail' website.id %}">{{ website.name }}</a>
+<span class="sep">/</span>
+<span class="cur">Ban List</span>
+{% endblock %}
 
-<!-- Tabs -->
-<div class="mb-6 border-b border-gray-200">
-    <nav class="flex gap-6 text-sm" id="tabs">
-        <button onclick="showTab('all')" class="tab-btn pb-3 border-b-2 border-indigo-600 font-semibold text-indigo-600"
-            data-tab="all">All ({{ total }})</button>
-        <button onclick="showTab('email')"
-            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="email">Email
-            ({{ by_type.email.count }})</button>
-        <button onclick="showTab('ip')"
-            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="ip">IP ({{
-            by_type.ip.count }})</button>
-        <button onclick="showTab('domain')"
-            class="tab-btn pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700"
-            data-tab="domain">Domain ({{ by_type.domain.count }})</button>
-    </nav>
-</div>
+{% block topbar_actions %}
+<button class="btn btn-primary btn-sm" onclick="document.getElementById('add-ban-modal').style.display='flex'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+    Add Ban
+</button>
+{% endblock %}
 
-{% for tab, queryset in by_type.items %}
-<div class="tab-panel hidden" data-panel="{{ tab }}">
-    {% include "dashboard/_ban_table.html" with ban_list=queryset %}
-</div>
-{% endfor %}
-
-<div class="tab-panel" data-panel="all">
-    {% include "dashboard/_ban_table.html" with ban_list=bans %}
-</div>
-
-<script>
-    function showTab(name) {
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            const active = b.dataset.tab === name;
-            b.classList.toggle('border-indigo-600', active);
-            b.classList.toggle('text-indigo-600', active);
-            b.classList.toggle('font-semibold', active);
-            b.classList.toggle('border-transparent', !active);
-            b.classList.toggle('text-gray-500', !active);
-        });
-        document.querySelectorAll('.tab-panel').forEach(p => {
-            p.classList.toggle('hidden', p.dataset.panel !== name);
-        });
+{% block extra_css %}
+<style>
+    .ban-tabs {
+        display: flex;
+        border-bottom: 1px solid #e2deda;
+        margin-bottom: 0;
     }
 
-    document.getElementById('ban-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const type = document.getElementById('ban-type').value;
-        const value = document.getElementById('ban-value').value.trim();
-        const reason = document.getElementById('ban-reason').value.trim();
-        const msg = document.getElementById('ban-msg');
+    .ban-tab {
+        padding: 11px 18px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #807b74;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        cursor: pointer;
+        transition: color .15s, border-color .15s;
+    }
 
-        if (!value) { msg.textContent = 'Value is required.'; msg.className = 'text-xs mt-2 text-red-600'; msg.classList.remove('hidden'); return; }
+    .ban-tab:hover {
+        color: #1a1917;
+    }
 
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    .ban-tab.active {
+        color: #e8673a;
+        border-bottom-color: #e8673a;
+    }
 
-        try {
-            const res = await fetch(`/api/v1/moderation/{{ website.id }}/bans`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-API-Key': '{{ website.api_key }}' },
-                body: JSON.stringify({ entity_type: type, entity_value: value, reason: reason || null }),
-            });
-            if (res.ok) {
-                msg.textContent = `${type} "${value}" banned. Refresh to see changes.`;
-                msg.className = 'text-xs mt-2 text-green-600';
-                document.getElementById('ban-value').value = '';
-                document.getElementById('ban-reason').value = '';
-            } else {
-                const data = await res.json();
-                msg.textContent = data.detail || 'Error adding ban.';
-                msg.className = 'text-xs mt-2 text-red-600';
-            }
-        } catch {
-            msg.textContent = 'Network error.';
-            msg.className = 'text-xs mt-2 text-red-600';
-        }
-        msg.classList.remove('hidden');
-    });
+    .ban-panel {
+        display: none;
+    }
 
-    async function removeBan(banId) {
+    .ban-panel.active {
+        display: block;
+    }
+
+    .ban-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        transition: background .15s;
+    }
+
+    .ban-row:hover {
+        background: #faf9f7;
+    }
+
+    .ban-value {
+        flex: 1;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .ban-reason {
+        font-size: 12px;
+        color: #807b74;
+    }
+
+    .ban-date {
+        font-size: 11px;
+        color: #b8b2a9;
+        flex-shrink: 0;
+    }
+
+    .ban-remove {
+        font-size: 11px;
+        font-weight: 500;
+        color: #b83232;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background .15s;
+        flex-shrink: 0;
+    }
+
+    .ban-remove:hover {
+        background: #fdecea;
+    }
+
+    /* Modal */
+    .modal-bg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .45);
+        z-index: 500;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, .25);
+        width: 100%;
+        max-width: 420px;
+        padding: 28px;
+        margin: 16px;
+    }
+
+    .modal-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 17px;
+        font-weight: 700;
+        color: #1a1917;
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #1a1917;
+        margin-bottom: 5px;
+    }
+
+    .form-input {
+        display: block;
+        width: 100%;
+        padding: 8px 11px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 13px;
+        color: #1a1917;
+        background: #fff;
+        border: 1px solid #e2deda;
+        border-radius: 6px;
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: #e8673a;
+        box-shadow: 0 0 0 3px rgba(232, 103, 58, .12);
+    }
+
+    .form-group {
+        margin-bottom: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-hd">
+    <div>
+        <h1>Ban List</h1>
+        <p>{{ total }} active ban{{ total|pluralize }} on {{ website.name }}</p>
+    </div>
+</div>
+
+<div class="card">
+
+    <!-- Tabs -->
+    <div class="ban-tabs" style="padding:0 20px;">
+        <div class="ban-tab active" onclick="showTab('email', this)">
+            Email
+            {% if by_type.email.count %}<span
+                style="font-size:10px;background:#eceae6;color:#4a4640;padding:1px 6px;border-radius:9px;margin-left:5px;">{{
+                by_type.email.count }}</span>{% endif %}
+        </div>
+        <div class="ban-tab" onclick="showTab('ip', this)">
+            IP
+            {% if by_type.ip.count %}<span
+                style="font-size:10px;background:#eceae6;color:#4a4640;padding:1px 6px;border-radius:9px;margin-left:5px;">{{
+                by_type.ip.count }}</span>{% endif %}
+        </div>
+        <div class="ban-tab" onclick="showTab('domain', this)">
+            Domain
+            {% if by_type.domain.count %}<span
+                style="font-size:10px;background:#eceae6;color:#4a4640;padding:1px 6px;border-radius:9px;margin-left:5px;">{{
+                by_type.domain.count }}</span>{% endif %}
+        </div>
+    </div>
+
+    <!-- Email panel -->
+    <div id="panel-email" class="ban-panel active">
+        <div class="divide-y">
+            {% for ban in by_type.email %}
+            <div class="ban-row" id="ban-{{ ban.id }}">
+                <div>
+                    <div class="ban-value">{{ ban.value }}</div>
+                    {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
+                </div>
+                <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>
+                <button class="ban-remove" onclick="removeBan('{{ ban.id }}')">Remove</button>
+            </div>
+            {% empty %}
+            <div class="empty-state"><span class="empty-icon">✅</span>
+                <h3>No email bans</h3>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- IP panel -->
+    <div id="panel-ip" class="ban-panel">
+        <div class="divide-y">
+            {% for ban in by_type.ip %}
+            <div class="ban-row" id="ban-{{ ban.id }}">
+                <div>
+                    <div class="ban-value">{{ ban.value }}</div>
+                    {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
+                </div>
+                <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>
+                <button class="ban-remove" onclick="removeBan('{{ ban.id }}')">Remove</button>
+            </div>
+            {% empty %}
+            <div class="empty-state"><span class="empty-icon">✅</span>
+                <h3>No IP bans</h3>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Domain panel -->
+    <div id="panel-domain" class="ban-panel">
+        <div class="divide-y">
+            {% for ban in by_type.domain %}
+            <div class="ban-row" id="ban-{{ ban.id }}">
+                <div>
+                    <div class="ban-value">{{ ban.value }}</div>
+                    {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
+                </div>
+                <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>
+                <button class="ban-remove" onclick="removeBan('{{ ban.id }}')">Remove</button>
+            </div>
+            {% empty %}
+            <div class="empty-state"><span class="empty-icon">✅</span>
+                <h3>No domain bans</h3>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Add ban modal -->
+<div class="modal-bg" id="add-ban-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <div class="modal-title">Add Ban</div>
+        <form method="POST" action="{% url 'dashboard:ban-list' website.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">Type</label>
+                <select name="entity_type" class="form-input">
+                    <option value="email">Email</option>
+                    <option value="ip">IP Address</option>
+                    <option value="domain">Domain</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Value</label>
+                <input type="text" name="value" class="form-input" placeholder="e.g. spam@example.com" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reason (optional)</label>
+                <input type="text" name="reason" class="form-input" placeholder="e.g. repeated spam" />
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+                <button type="button" class="btn btn-ghost"
+                    onclick="document.getElementById('add-ban-modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Ban</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const CSRF = '{{ csrf_token }}';
+    const WEBSITE_ID = '{{ website.id }}';
+
+    function showTab(name, el) {
+        document.querySelectorAll('.ban-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ban-panel').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    function removeBan(banId) {
         if (!confirm('Remove this ban?')) return;
-        const res = await fetch(`{% url 'dashboard:ban-remove' website.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', banId), {
+        fetch('/dashboard/website/' + WEBSITE_ID + '/bans/' + banId + '/remove/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-        });
-        if (res.ok) location.reload();
-        else alert('Failed to remove ban.');
+            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    var row = document.getElementById('ban-' + banId);
+                    row.style.transition = 'opacity .25s';
+                    row.style.opacity = '0';
+                    setTimeout(() => { row.remove(); window.toast('Ban removed', 'success'); }, 260);
+                } else {
+                    window.toast(data.error || 'Failed', 'error');
+                }
+            });
     }
 </script>
 {% endblock %}

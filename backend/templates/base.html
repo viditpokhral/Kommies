@@ -1,121 +1,1240 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ sidebarOpen: true }">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Comment Platform{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Kommies{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        /* ── Tokens ───────────────────────────────────────── */
+        :root {
+            --bg: #f4f3f0;
+            --surface: #ffffff;
+            --surface-2: #eceae6;
+
+            --sb-bg: #111110;
+            --sb-text: #9a948d;
+            --sb-head: #f0ede8;
+            --sb-hover: #1c1b1a;
+            --sb-act: #222120;
+
+            --accent: #e8673a;
+            --accent-h: #d45830;
+            --accent-bg: #fdf0ea;
+
+            --text: #1a1917;
+            --text-2: #4a4640;
+            --muted: #807b74;
+            --faint: #b8b2a9;
+
+            --ok: #276740;
+            --ok-bg: #eaf4ee;
+            --warn: #a05c07;
+            --warn-bg: #fef5e4;
+            --err: #b83232;
+            --err-bg: #fdecea;
+            --info: #1a67a0;
+            --info-bg: #e6f2fb;
+
+            --border: #e2deda;
+            --border-2: #cdc8c2;
+
+            --r: 6px;
+            --r-lg: 10px;
+            --ease: 150ms ease;
+
+            --font: 'IBM Plex Sans', system-ui, sans-serif;
+            --display: 'Syne', sans-serif;
+            --mono: 'IBM Plex Mono', monospace;
+
+            --sb-w: 232px;
+            --top-h: 54px;
+        }
+
+        /* ── Reset ────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
 
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: var(--font);
+            font-size: 14px;
+            line-height: 1.55;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            overflow: hidden;
         }
 
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button {
+            cursor: pointer;
+            font: inherit;
+            border: none;
+            background: none;
+        }
+
+        ul,
+        ol {
+            list-style: none;
+        }
+
+        h1 {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: -.4px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: -.2px;
+        }
+
+        h3 {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* ── Sidebar ──────────────────────────────────────── */
+        #sidebar {
+            width: var(--sb-w);
+            flex-shrink: 0;
+            background: var(--sb-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: width var(--ease);
+            z-index: 100;
+        }
+
+        #sidebar.collapsed {
+            width: 52px;
+        }
+
+        .sb-logo {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 0 14px;
+            height: var(--top-h);
+            border-bottom: 1px solid #1c1b1a;
+            flex-shrink: 0;
+        }
+
+        .sb-mark {
+            width: 26px;
+            height: 26px;
+            background: var(--accent);
+            border-radius: 5px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--display);
+            font-weight: 800;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .sb-name {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--sb-head);
+            letter-spacing: -.2px;
+            white-space: nowrap;
+        }
+
+        #sidebar.collapsed .sb-name {
+            display: none;
+        }
+
+        .sb-sites {
+            padding: 8px;
+            border-bottom: 1px solid #1c1b1a;
+            flex-shrink: 0;
+        }
+
+        .sb-sites select {
+            width: 100%;
+            background: #181716;
+            border: 1px solid #272523;
+            color: var(--sb-text);
+            font-family: var(--font);
+            font-size: 12px;
+            padding: 7px 24px 7px 9px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239a948d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+
+        #sidebar.collapsed .sb-sites {
+            display: none;
+        }
+
+        .sb-nav {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 6px 0;
+            scrollbar-width: none;
+        }
+
+        .sb-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sb-section {
+            font-family: var(--display);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            color: #333230;
+            padding: 12px 14px 3px;
+            white-space: nowrap;
+        }
+
+        #sidebar.collapsed .sb-section {
+            visibility: hidden;
+        }
+
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 14px;
+            color: var(--sb-text);
+            font-size: 13px;
+            white-space: nowrap;
+            position: relative;
+            transition: background var(--ease), color var(--ease);
+        }
+
+        .sb-item:hover {
+            background: var(--sb-hover);
+            color: var(--sb-head);
+        }
+
+        .sb-item.active {
+            background: var(--sb-act);
+            color: var(--sb-head);
+        }
+
+        .sb-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 7px;
+            bottom: 7px;
+            width: 2px;
+            background: var(--accent);
+            border-radius: 0 2px 2px 0;
+        }
+
+        .sb-item svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            opacity: .65;
+        }
+
+        .sb-item:hover svg,
+        .sb-item.active svg {
+            opacity: 1;
+        }
+
+        .sb-label {
+            flex: 1;
+        }
+
+        #sidebar.collapsed .sb-label {
+            display: none;
+        }
+
+        .sb-badge {
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            background: var(--accent);
+            color: #fff;
+            padding: 1px 5px;
+            border-radius: 9px;
+            line-height: 1.6;
+        }
+
+        #sidebar.collapsed .sb-badge {
+            display: none;
+        }
+
+        .sb-foot {
+            border-top: 1px solid #1c1b1a;
+            padding: 8px;
+            flex-shrink: 0;
+        }
+
+        .sb-user {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background var(--ease);
+            position: relative;
+        }
+
+        .sb-user:hover {
+            background: var(--sb-hover);
+        }
+
+        .sb-avatar {
+            width: 27px;
+            height: 27px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--display);
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .sb-uname {
+            color: var(--sb-head);
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sb-urole {
+            color: var(--sb-text);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        #sidebar.collapsed .sb-uinfo,
+        #sidebar.collapsed .sb-uchev {
+            display: none;
+        }
+
+        /* ── Main ─────────────────────────────────────────── */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        #topbar {
+            height: var(--top-h);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        .top-toggle {
+            color: var(--muted);
+            padding: 5px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            transition: background var(--ease), color var(--ease);
+        }
+
+        .top-toggle:hover {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .top-toggle svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        .top-bc {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .top-bc a:hover {
+            color: var(--text);
+        }
+
+        .top-bc .sep {
+            color: var(--border-2);
+        }
+
+        .top-bc .cur {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px 30px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        #content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* ── Cards ────────────────────────────────────────── */
         .card {
-            @apply bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            overflow: hidden;
         }
 
+        .card-p {
+            padding: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .card-title {
+            font-family: var(--display);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 18px 20px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+
+        .stat-value {
+            font-family: var(--display);
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .stat-delta {
+            font-size: 11px;
+            color: var(--faint);
+            margin-top: 5px;
+        }
+
+        .stat-delta.up {
+            color: var(--ok);
+        }
+
+        .stat-delta.down {
+            color: var(--err);
+        }
+
+        /* ── Table ────────────────────────────────────────── */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--r-lg);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background: var(--surface-2);
+        }
+
+        th {
+            font-family: var(--display);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--muted);
+            padding: 10px 16px;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr {
+            background: var(--surface);
+        }
+
+        tbody tr:hover {
+            background: #faf9f7;
+        }
+
+        /* ── Badges ───────────────────────────────────────── */
         .badge {
-            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
         }
 
-        .badge-green {
-            @apply bg-green-100 text-green-800;
+        .badge-green,
+        .badge-published,
+        .badge-active {
+            background: var(--ok-bg);
+            color: var(--ok);
         }
 
-        .badge-yellow {
-            @apply bg-yellow-100 text-yellow-800;
+        .badge-yellow,
+        .badge-spam,
+        .badge-pending {
+            background: var(--warn-bg);
+            color: var(--warn);
         }
 
-        .badge-red {
-            @apply bg-red-100 text-red-800;
+        .badge-red,
+        .badge-deleted,
+        .badge-suspended {
+            background: var(--err-bg);
+            color: var(--err);
         }
 
-        .badge-blue {
-            @apply bg-blue-100 text-blue-800;
+        .badge-blue,
+        .badge-moderator {
+            background: var(--info-bg);
+            color: var(--info);
         }
 
-        /* Django Form Global Styles */
-        form p {
-            @apply mb-4;
+        .badge-orange,
+        .badge-reported {
+            background: #fff0e6;
+            color: #c05a1a;
         }
 
-        form label {
-            @apply block text-sm font-medium text-gray-700 mb-1.5;
+        .badge-gray,
+        .badge-trash,
+        .badge-viewer {
+            background: var(--surface-2);
+            color: var(--muted);
         }
 
-        form input[type="text"],
-        form input[type="email"],
-        form input[type="password"] {
-            @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border transition duration-150 ease-in-out;
+        .badge-owner {
+            background: var(--accent-bg);
+            color: var(--accent);
         }
 
-        form .helptext {
-            @apply text-xs text-gray-500 mt-1 block;
+        /* ── Buttons ──────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 7px 14px;
+            border-radius: var(--r);
+            border: 1px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background var(--ease), color var(--ease), border-color var(--ease);
         }
 
-        form ul.errorlist {
-            @apply text-sm text-red-600 mt-1 list-none p-0;
+        .btn svg {
+            width: 13px;
+            height: 13px;
         }
 
-        /* Buttons */
         .btn-primary {
-            @apply flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out;
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
 
-        .btn-secondary {
-            @apply flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out;
+        .btn-primary:hover {
+            background: var(--accent-h);
+            border-color: var(--accent-h);
+        }
+
+        .btn-secondary,
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover,
+        .btn-ghost:hover {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .btn-danger {
+            background: var(--err-bg);
+            color: var(--err);
+        }
+
+        .btn-danger:hover {
+            background: #f5c6c3;
+        }
+
+        .btn-sm {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+
+        .btn-xs {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        a.btn-primary,
+        a.btn-secondary {
+            display: inline-flex;
+        }
+
+        /* ── Forms ────────────────────────────────────────── */
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="url"],
+        input[type="number"],
+        select,
+        textarea {
+            display: block;
+            width: 100%;
+            padding: 8px 11px;
+            font-family: var(--font);
+            font-size: 13px;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            outline: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(232, 103, 58, .12);
+        }
+
+        form p {
+            margin-bottom: 14px;
+        }
+
+        .helptext {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+            display: block;
+        }
+
+        ul.errorlist {
+            font-size: 12px;
+            color: var(--err);
+            margin-top: 4px;
+        }
+
+        /* ── Alerts ───────────────────────────────────────── */
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 11px 14px;
+            border-radius: var(--r);
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        .alert-success {
+            background: var(--ok-bg);
+            color: var(--ok);
+        }
+
+        .alert-warning {
+            background: var(--warn-bg);
+            color: var(--warn);
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: var(--err-bg);
+            color: var(--err);
+        }
+
+        .alert-info {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+
+        /* ── Toast ────────────────────────────────────────── */
+        #toast-zone {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 15px;
+            background: #1a1917;
+            color: #f0ede8;
+            border-radius: var(--r-lg);
+            font-size: 13px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .28);
+            pointer-events: all;
+            max-width: 320px;
+            animation: tIn 180ms ease forwards;
+        }
+
+        .toast.success::before {
+            content: '';
+            width: 3px;
+            align-self: stretch;
+            background: #4ade80;
+            border-radius: 2px;
+        }
+
+        .toast.error::before {
+            content: '';
+            width: 3px;
+            align-self: stretch;
+            background: #f87171;
+            border-radius: 2px;
+        }
+
+        .toast.warning::before {
+            content: '';
+            width: 3px;
+            align-self: stretch;
+            background: #fbbf24;
+            border-radius: 2px;
+        }
+
+        @keyframes tIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* ── Empty state ──────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 56px 24px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+            opacity: .5;
+            display: block;
+        }
+
+        .empty-state h3 {
+            font-family: var(--display);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        /* ── Dropdown ─────────────────────────────────────── */
+        .dd-menu {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: 0;
+            min-width: 155px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, .1);
+            z-index: 200;
+            padding: 4px;
+        }
+
+        .dd-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 9px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background var(--ease);
+        }
+
+        .dd-item:hover {
+            background: var(--surface-2);
+        }
+
+        .dd-item.danger {
+            color: var(--err);
+        }
+
+        .dd-item.danger:hover {
+            background: var(--err-bg);
+        }
+
+        .dd-sep {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        /* ── HTMX ─────────────────────────────────────────── */
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            opacity: 1;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 600ms linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── Utilities ────────────────────────────────────── */
+        .divide-y>*+* {
+            border-top: 1px solid var(--border);
+        }
+
+        .text-muted {
+            color: var(--muted);
+        }
+
+        .text-sm {
+            font-size: 12px;
+        }
+
+        .font-mono {
+            font-family: var(--mono);
+        }
+
+        .truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .gap-2 {
+            gap: 8px;
+        }
+
+        .gap-3 {
+            gap: 12px;
+        }
+
+        .gap-4 {
+            gap: 16px;
+        }
+
+        .mt-2 {
+            margin-top: 8px;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mt-6 {
+            margin-top: 24px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .mb-6 {
+            margin-bottom: 24px;
+        }
+
+        .mb-8 {
+            margin-bottom: 28px;
+        }
+
+        .page-hd {
+            margin-bottom: 22px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .page-hd p {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 3px;
         }
     </style>
+
+    {% block extra_css %}{% endblock %}
 </head>
 
-<body class="bg-gray-50 flex flex-col min-h-screen">
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl">💬</span>
-                        <span class="ml-2 text-xl font-bold text-gray-900 tracking-tight">Comment Platform</span>
-                    </div>
-                    <div class="hidden sm:ml-8 sm:flex sm:space-x-8 h-full">
-                        <a href="{% url 'dashboard:home' %}"
-                            class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition">
-                            Dashboard
-                        </a>
-                        <a href="{% url 'dashboard:admin-home' %}" 
-                            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition">
-                            Admin
-                        </a>
-                    </div>
+<body>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" :class="{ 'collapsed': !sidebarOpen }">
+
+        <div class="sb-logo">
+            <div class="sb-mark">K</div>
+            <span class="sb-name">Kommies</span>
+        </div>
+
+        {% if user_websites %}
+        <div class="sb-sites">
+            <select onchange="window.location.href=this.value">
+                {% for site in user_websites %}
+                {% if current_website %}
+                {% if current_website.id == site.id %}
+                <option value="{% url 'dashboard:website-detail' site.id %}" selected>{{ site.name }}</option>
+                {% else %}
+                <option value="{% url 'dashboard:website-detail' site.id %}">{{ site.name }}</option>
+                {% endif %}
+                {% else %}
+                <option value="{% url 'dashboard:website-detail' site.id %}">{{ site.name }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <nav class="sb-nav">
+
+            <a href="{% url 'dashboard:home' %}"
+                class="sb-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span class="sb-label">Home</span>
+            </a>
+
+            {% if current_website %}
+            <div class="sb-section">Site</div>
+
+            <a href="{% url 'dashboard:website-detail' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'website-detail' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                <span class="sb-label">Overview</span>
+            </a>
+
+            <a href="{% url 'dashboard:moderation-queue' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'moderation-queue' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span class="sb-label">Moderation</span>
+                {% if pending_count %}
+                {% if pending_count > 0 %}
+                <span class="sb-badge">{{ pending_count }}</span>
+                {% endif %}
+                {% endif %}
+            </a>
+
+            <a href="{% url 'dashboard:analytics' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span class="sb-label">Analytics</span>
+            </a>
+
+            <a href="{% url 'dashboard:ban-list' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'ban-list' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                </svg>
+                <span class="sb-label">Ban List</span>
+            </a>
+
+            <a href="{% url 'dashboard:members-list' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'members-list' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span class="sb-label">Members</span>
+            </a>
+            {% endif %}
+
+            {% if is_admin %}
+            <div class="sb-section">Admin</div>
+
+            <a href="{% url 'dashboard:admin-home' %}"
+                class="sb-item {% if request.resolver_match.url_name == 'admin-home' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <rect x="2" y="7" width="20" height="14" rx="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <span class="sb-label">Platform Stats</span>
+            </a>
+
+            <a href="{% url 'dashboard:admin-tenants' %}"
+                class="sb-item {% if request.resolver_match.url_name == 'admin-tenants' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span class="sb-label">Tenants</span>
+            </a>
+
+            <a href="{% url 'dashboard:admin-comments' %}"
+                class="sb-item {% if request.resolver_match.url_name == 'admin-comments' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span class="sb-label">All Comments</span>
+            </a>
+            {% endif %}
+
+        </nav>
+
+        <div class="sb-foot">
+            <div class="sb-user" x-data="{ open: false }" @click="open = !open" @click.outside="open = false">
+                <div class="sb-avatar">
+                    {% if user.first_name %}{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper
+                    }}{% else %}{{ user.email|slice:":1"|upper }}{% endif %}
                 </div>
-                <div class="flex items-center space-x-4">
-                    {% if user.is_authenticated %}
-                    <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ user.email }}</span>
-                    <a href="/admin/logout/" class="text-sm text-gray-500 hover:text-red-600 transition">Logout</a>
-                    {% else %}
-                    <a href="/admin/login/"
-                        class="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition">Login</a>
-                    {% endif %}
+                <div class="sb-uinfo" style="flex:1;min-width:0;">
+                    <div class="sb-uname">{{ user.get_full_name|default:user.email }}</div>
+                    <div class="sb-urole">{% if is_admin %}Admin{% else %}Tenant{% endif %}</div>
+                </div>
+                <svg class="sb-uchev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9a948d"
+                    stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+
+                <div class="dd-menu" x-show="open" x-cloak
+                    style="bottom:calc(100% + 5px);top:auto;left:0;right:0;min-width:0;">
+                    <a href="/dashboard/account/" class="dd-item">
+                        <i class="fas fa-user" style="width:13px;opacity:.6;font-size:12px;"></i> Account
+                    </a>
+                    <div class="dd-sep"></div>
+                    <a href="/admin/logout/" class="dd-item danger">
+                        <i class="fas fa-sign-out-alt" style="width:13px;font-size:12px;"></i> Sign out
+                    </a>
                 </div>
             </div>
         </div>
-    </nav>
+    </aside>
 
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {% block content %}{% endblock %}
-    </main>
+    <!-- Main -->
+    <div id="main">
+        <header id="topbar">
+            <button class="top-toggle" @click="sidebarOpen = !sidebarOpen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
 
-    <footer class="bg-white border-t border-gray-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <p class="text-center text-sm text-gray-500">
-                © 2025 Comment Platform. Powered by Django + FastAPI.
-            </p>
+            <div class="top-bc">
+                <a href="{% url 'dashboard:home' %}">Dashboard</a>
+                {% block breadcrumb %}{% endblock %}
+            </div>
+
+            <div class="top-actions">
+                {% block topbar_actions %}{% endblock %}
+                <span class="htmx-indicator spinner"></span>
+            </div>
+        </header>
+
+        {% if messages %}
+        <div style="padding:10px 24px 0;display:flex;flex-direction:column;gap:7px;">
+            {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags|default:'info' }}">
+                <i class="fas fa-info-circle" style="margin-top:1px;flex-shrink:0;"></i> {{ msg }}
+            </div>
+            {% endfor %}
         </div>
-    </footer>
+        {% endif %}
+
+        <main id="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <div id="toast-zone"></div>
+
+    <script>
+        window.toast = function (msg, type, ms) {
+            type = type || 'success'; ms = ms || 3200;
+            var el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.textContent = msg;
+            document.getElementById('toast-zone').appendChild(el);
+            setTimeout(function () { el.remove(); }, ms);
+        };
+        document.body.addEventListener('showToast', function (e) {
+            window.toast(e.detail.value || e.detail);
+        });
+        document.body.addEventListener('htmx:responseError', function (e) {
+            try { window.toast(JSON.parse(e.detail.xhr.responseText).detail || 'Error', 'error'); }
+            catch (ex) { window.toast('Request failed', 'error'); }
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

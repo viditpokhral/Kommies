@@ -1,68 +1,80 @@
 {% extends 'base.html' %}
-{% block title %}Tenants — Admin{% endblock %}
+
+{% block title %}Tenants{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:admin-home' %}">Admin</a>
+<span class="sep">/</span>
+<span class="cur">Tenants</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<select class="btn btn-ghost btn-sm" style="padding:5px 10px;" onchange="window.location.href='?status='+this.value">
+    <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+    <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
+    <option value="pending_verification" {% if status_filter == 'pending_verification' %}selected{% endif %}>Pending
+    </option>
+</select>
+{% endblock %}
+
 {% block content %}
-<div class="mb-8 flex items-center justify-between">
+
+<div class="page-hd">
     <div>
-        <a href="{% url 'dashboard:admin-home' %}" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
-            <i class="fas fa-arrow-left mr-1"></i> Admin Home
-        </a>
-        <h1 class="text-3xl font-bold text-gray-900">Tenants</h1>
-    </div>
-    <div class="flex gap-2">
-        <a href="?status=" class="px-3 py-1.5 text-sm rounded-lg {% if not status_filter %}bg-indigo-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">All</a>
-        <a href="?status=active" class="px-3 py-1.5 text-sm rounded-lg {% if status_filter == 'active' %}bg-green-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">Active</a>
-        <a href="?status=suspended" class="px-3 py-1.5 text-sm rounded-lg {% if status_filter == 'suspended' %}bg-red-600 text-white{% else %}bg-white border border-gray-300 text-gray-700{% endif %}">Suspended</a>
+        <h1>Tenants</h1>
+        <p>{{ tenants.count }} tenant{{ tenants.count|pluralize }}</p>
     </div>
 </div>
 
-<div class="card overflow-hidden">
-    <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+<div class="table-wrap">
+    <table>
+        <thead>
             <tr>
-                <th class="px-6 py-3 text-left">Email</th>
-                <th class="px-6 py-3 text-left">Name</th>
-                <th class="px-6 py-3 text-left">Websites</th>
-                <th class="px-6 py-3 text-left">Status</th>
-                <th class="px-6 py-3 text-left">Joined</th>
-                <th class="px-6 py-3 text-left">Actions</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Websites</th>
+                <th>Joined</th>
+                <th></th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody>
             {% for tenant in tenants %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-3 font-medium text-gray-900">{{ tenant.email }}</td>
-                <td class="px-6 py-3 text-gray-500">{{ tenant.full_name|default:"—" }}</td>
-                <td class="px-6 py-3 text-gray-500">{{ tenant.website_count }}</td>
-                <td class="px-6 py-3">
-                    <span class="badge badge-{% if tenant.status == 'active' %}green{% else %}red{% endif %}">{{ tenant.status }}</span>
+            <tr>
+                <td>
+                    <div style="font-weight:500;color:#1a1917;">{{ tenant.email }}</div>
+                    {% if tenant.get_full_name %}<div style="font-size:12px;color:#807b74;">{{ tenant.get_full_name }}
+                    </div>{% endif %}
                 </td>
-                <td class="px-6 py-3 text-gray-400">{{ tenant.created_at|date:"M j, Y" }}</td>
-                <td class="px-6 py-3 flex gap-2">
-                    <a href="{% url 'dashboard:admin-tenant-detail' tenant.id %}" class="text-indigo-600 hover:underline text-xs">View</a>
+                <td>
                     {% if tenant.status == 'active' %}
-                    <button onclick="setStatus('{{ tenant.id }}', 'suspended')" class="text-red-500 hover:underline text-xs">Suspend</button>
+                    <span class="badge badge-green">active</span>
+                    {% elif tenant.status == 'suspended' %}
+                    <span class="badge badge-red">suspended</span>
+                    {% elif tenant.status == 'pending_verification' %}
+                    <span class="badge badge-yellow">pending</span>
                     {% else %}
-                    <button onclick="setStatus('{{ tenant.id }}', 'active')" class="text-green-600 hover:underline text-xs">Activate</button>
+                    <span class="badge badge-gray">{{ tenant.status }}</span>
                     {% endif %}
+                </td>
+                <td style="font-family:'IBM Plex Mono',monospace;">{{ tenant.website_count }}</td>
+                <td style="color:#807b74;font-size:12px;">{{ tenant.created_at|date:"M j, Y" }}</td>
+                <td>
+                    <a href="{% url 'dashboard:admin-tenant-detail' tenant.id %}" class="btn btn-ghost btn-sm">View</a>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6" class="px-6 py-12 text-center text-gray-400">No tenants found</td></tr>
+            <tr>
+                <td colspan="5">
+                    <div class="empty-state"><span class="empty-icon">👥</span>
+                        <h3>No tenants</h3>
+                    </div>
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-{% endblock %}
-{% block scripts %}
-<script>
-async function setStatus(userId, status) {
-    if (!confirm(`${status === 'suspended' ? 'Suspend' : 'Activate'} this tenant?`)) return;
-    const res = await fetch(`/dashboard/admin-panel/tenants/${userId}/status/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}'},
-        body: `status=${status}`
-    });
-    if ((await res.json()).success) location.reload();
-}
-</script>
+
 {% endblock %}

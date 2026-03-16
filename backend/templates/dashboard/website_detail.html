@@ -1,160 +1,312 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ website.name }} - Dashboard{% endblock %}
+{% block title %}{{ website.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<span class="cur">{{ website.name }}</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'dashboard:moderation-queue' website.id %}" class="btn btn-ghost btn-sm">
+    Moderation Queue
+    {% if pending_count and pending_count > 0 %}
+    <span
+        style="background:#e8673a;color:#fff;font-size:10px;padding:1px 6px;border-radius:9px;font-family:'IBM Plex Mono',monospace;">{{
+        pending_count }}</span>
+    {% endif %}
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .ov-card {
+        background: #fff;
+        border: 1px solid #e2deda;
+        border-radius: 10px;
+        padding: 18px 20px;
+    }
+
+    .ov-label {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: .7px;
+        color: #807b74;
+        margin-bottom: 7px;
+    }
+
+    .ov-value {
+        font-family: 'Syne', sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        color: #1a1917;
+        letter-spacing: -1px;
+        line-height: 1;
+    }
+
+    .ov-sub {
+        font-size: 11px;
+        color: #b8b2a9;
+        margin-top: 4px;
+    }
+
+    .ov-warn {
+        color: #b83232;
+    }
+
+    .section-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1a1917;
+        margin-bottom: 12px;
+    }
+
+    .comment-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 0;
+    }
+
+    .comment-row+.comment-row {
+        border-top: 1px solid #e2deda;
+    }
+
+    .c-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #fdf0ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .c-avatar span {
+        font-family: 'Syne', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        color: #e8673a;
+    }
+
+    .c-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .c-meta {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 3px;
+        flex-wrap: wrap;
+    }
+
+    .c-author {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .c-time {
+        font-size: 11px;
+        color: #b8b2a9;
+    }
+
+    .c-text {
+        font-size: 13px;
+        color: #4a4640;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .c-thread {
+        font-size: 11px;
+        color: #b8b2a9;
+        margin-top: 2px;
+    }
+
+    .thread-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+    }
+
+    .thread-row+.thread-row {
+        border-top: 1px solid #e2deda;
+    }
+
+    .thread-id {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        color: #4a4640;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+        margin-right: 12px;
+    }
+
+    .thread-count {
+        font-family: 'Syne', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1917;
+        flex-shrink: 0;
+    }
+
+    .thread-label {
+        font-size: 10px;
+        color: #807b74;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .api-key-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #eceae6;
+        border-radius: 6px;
+        padding: 8px 12px;
+    }
+
+    .api-key-val {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        color: #1a1917;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .copy-btn {
+        font-size: 11px;
+        font-weight: 500;
+        color: #807b74;
+        background: none;
+        border: none;
+        cursor: pointer;
+        flex-shrink: 0;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: background .15s;
+    }
+
+    .copy-btn:hover {
+        background: #dedad4;
+        color: #1a1917;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <a href="{% url 'dashboard:home' %}" class="text-sm text-gray-600 hover:text-gray-900 mb-2 inline-block">
-        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
-    </a>
-    <h1 class="text-3xl font-bold text-gray-900">{{ website.name }}</h1>
-    <p class="mt-2 text-sm text-gray-600">{{ website.domain }}</p>
-</div>
 
-<!-- Quick Stats -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="card p-4">
-        <div class="text-3xl font-bold text-gray-900">{{ stats.total_comments }}</div>
-        <div class="text-sm text-gray-600 mt-1">Total Comments</div>
-    </div>
-    <div class="card p-4">
-        <div class="text-3xl font-bold text-indigo-600">{{ stats.comments_today }}</div>
-        <div class="text-sm text-gray-600 mt-1">Today</div>
-    </div>
-    <div class="card p-4">
-        <div class="text-3xl font-bold text-yellow-600">{{ stats.flagged }}</div>
-        <div class="text-sm text-gray-600 mt-1">Flagged</div>
-    </div>
-    <div class="card p-4">
-        <div class="text-3xl font-bold text-red-600">{{ stats.spam }}</div>
-        <div class="text-sm text-gray-600 mt-1">Spam</div>
+<div class="page-hd">
+    <div>
+        <h1>{{ website.name }}</h1>
+        <p>{{ website.domain }}</p>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <a href="{% url 'dashboard:moderation-queue' website.id %}" class="card p-6 hover:shadow-md transition">
-        <div class="flex items-center">
-            <span class="text-4xl mr-4">⚖️</span>
-            <div>
-                <h3 class="font-semibold text-gray-900">Moderation Queue</h3>
-                <p class="text-sm text-gray-600">Review {{ stats.flagged }} flagged comments</p>
-            </div>
-        </div>
-    </a>
-
-    <a href="{% url 'dashboard:analytics' website.id %}" class="card p-6 hover:shadow-md transition">
-        <div class="flex items-center">
-            <span class="text-4xl mr-4">📊</span>
-            <div>
-                <h3 class="font-semibold text-gray-900">Analytics</h3>
-                <p class="text-sm text-gray-600">View detailed stats</p>
-            </div>
-        </div>
-    </a>
-
-    <a href="{% url 'dashboard:ban-list' website.id %}" class="card p-6 hover:shadow-md transition">
-        <div class="flex items-center">
-            <span class="text-4xl mr-4">🚫</span>
-            <div>
-                <h3 class="font-semibold text-gray-900">Ban List</h3>
-                <p class="text-sm text-gray-600">Manage banned emails, IPs, domains</p>
-            </div>
-        </div>
-    </a>
-
-    <a href="{% url 'dashboard:members-list' website.id %}" class="card p-6 hover:shadow-md transition">
-        <div class="flex items-center">
-            <span class="text-4xl mr-4">👥</span>
-            <div>
-                <h3 class="font-semibold text-gray-900">Team</h3>
-                <p class="text-sm text-gray-600">Manage moderators and viewers</p>
-            </div>
-        </div>
-    </a>
-
-    <a href="/admin/dashboard/website/{{ website.id }}/change/" class="card p-6 hover:shadow-md transition">
-        <div class="flex items-center">
-            <span class="text-4xl mr-4">⚙️</span>
-            <div>
-                <h3 class="font-semibold text-gray-900">Settings</h3>
-                <p class="text-sm text-gray-600">Configure website</p>
-            </div>
-        </div>
-    </a>
+<!-- Stats -->
+<div class="overview-grid">
+    <div class="ov-card">
+        <div class="ov-label">Total Comments</div>
+        <div class="ov-value">{{ stats.total_comments }}</div>
+    </div>
+    <div class="ov-card">
+        <div class="ov-label">Total Threads</div>
+        <div class="ov-value">{{ stats.total_threads }}</div>
+    </div>
+    <div class="ov-card">
+        <div class="ov-label">Today</div>
+        <div class="ov-value">{{ stats.comments_today }}</div>
+        <div class="ov-sub">This week: {{ stats.comments_week }}</div>
+    </div>
+    <div class="ov-card">
+        <div class="ov-label">Flagged</div>
+        <div class="ov-value {% if stats.flagged > 0 %}ov-warn{% endif %}">{{ stats.flagged }}</div>
+        <div class="ov-sub">Spam: {{ stats.spam }}</div>
+    </div>
 </div>
 
-<!-- Recent Comments -->
-<div class="card mb-8">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Recent Comments</h2>
-    </div>
-    <div class="divide-y divide-gray-200">
-        {% for comment in recent_comments|slice:":10" %}
-        <div class="px-6 py-4 hover:bg-gray-50">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <span class="font-medium text-gray-900">{{ comment.author_name }}</span>
-                        <span
-                            class="badge badge-{% if comment.status == 'published' %}green{% elif comment.status == 'pending' %}yellow{% else %}red{% endif %}">
-                            {{ comment.status }}
-                        </span>
-                    </div>
-                    <p class="text-sm text-gray-700">{{ comment.content|truncatewords:30 }}</p>
-                    <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span><i class="fas fa-clock mr-1"></i>{{ comment.created_at|timesince }} ago</span>
-                        <span><i class="fas fa-file-alt mr-1"></i>{{
-                            {{ comment.thread.title|default:comment.thread.identifier }}</span>
-                        <span>👍 {{ comment.upvotes }} · 👎 {{ comment.downvotes }}</span>
-                    </div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+    <!-- Recent Comments -->
+    <div class="card card-p">
+        <div class="section-title">Recent Comments</div>
+        {% for comment in recent_comments %}
+        <div class="comment-row">
+            <div class="c-avatar"><span>{{ comment.author_name|slice:":1"|upper }}</span></div>
+            <div class="c-body">
+                <div class="c-meta">
+                    <span class="c-author">{{ comment.author_name }}</span>
+                    <span class="c-time">{{ comment.created_at|timesince }} ago</span>
                 </div>
+                <div class="c-text">{{ comment.content }}</div>
+                <div class="c-thread">{{ comment.thread.identifier|truncatechars:50 }}</div>
             </div>
         </div>
         {% empty %}
-        <div class="px-6 py-12 text-center text-gray-500">
-            No comments yet
-        </div>
+        <p style="font-size:13px;color:#807b74;padding:20px 0;text-align:center;">No comments yet.</p>
         {% endfor %}
+    </div>
+
+    <!-- Right column -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Top Threads -->
+        <div class="card card-p">
+            <div class="section-title">Active Threads</div>
+            {% for thread in recent_threads %}
+            <div class="thread-row">
+                <div class="thread-id">{{ thread.title|default:thread.identifier }}</div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div class="thread-count">{{ thread.comment_count }}</div>
+                    <div class="thread-label">comments</div>
+                </div>
+            </div>
+            {% empty %}
+            <p style="font-size:13px;color:#807b74;padding:12px 0;text-align:center;">No threads yet.</p>
+            {% endfor %}
+        </div>
+
+        <!-- API Key -->
+        <div class="card card-p">
+            <div class="section-title">API Key</div>
+            <div class="api-key-wrap">
+                <span class="api-key-val" id="api-key-val">{{ website.api_key }}</span>
+                <button class="copy-btn" onclick="copyKey()">Copy</button>
+            </div>
+            <p style="font-size:11px;color:#b8b2a9;margin-top:8px;">Use this key to initialise <code
+                    style="font-family:'IBM Plex Mono',monospace;font-size:11px;">kommies.js</code> on your site.</p>
+        </div>
+
     </div>
 </div>
 
-<!-- API Integration Code -->
-<div class="card">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Integration Code</h2>
-    </div>
-    <div class="p-6">
-        <p class="text-sm text-gray-600 mb-4">Add this code to your website to embed comments:</p>
-        <pre class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto"><code>&lt;div id="comments"&gt;&lt;/div&gt;
-&lt;script src="https://cdn.commentplatform.com/widget.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-  CommentPlatform.init({
-    apiKey: '{{ website.api_key }}',
-    threadId: window.location.pathname
-  });
-&lt;/script&gt;</code></pre>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function moderateComment(commentId, action) {
-        fetch(`/dashboard/comment/${commentId}/moderate/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: `action=${action}`
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
-            });
+    function copyKey() {
+        const val = document.getElementById('api-key-val').textContent.trim();
+        navigator.clipboard.writeText(val).then(() => window.toast('API key copied', 'success'));
     }
 </script>
 {% endblock %}

@@ -2,7 +2,6 @@
 Email Service
 ─────────────
 Sends all platform emails via SMTP (works with Gmail, SendGrid, Mailgun, etc.)
-Uses Jinja2-style templates inline so there are no extra template files needed.
 
 Usage:
     from app.services.email import email_service
@@ -27,93 +26,146 @@ logger = logging.getLogger(__name__)
 # ── HTML EMAIL TEMPLATES ──────────────────────────────────────────────────────
 
 def _base_template(title: str, body_html: str) -> str:
-    return f"""
-<!DOCTYPE html>
-<html>
+    return f"""<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{title}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0">
+<body style="margin:0;padding:0;background:#f4f3f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
     <tr>
-      <td align="center" style="padding:40px 0;">
-        <table width="600" cellpadding="0" cellspacing="0"
-               style="background:#ffffff;border-radius:8px;overflow:hidden;
-                      box-shadow:0 2px 8px rgba(0,0,0,.08);">
+      <td align="center" style="padding:40px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" role="presentation"
+               style="background:#ffffff;border-radius:10px;overflow:hidden;
+                      border:1px solid #e2deda;box-shadow:0 4px 24px rgba(0,0,0,.06);">
+
           <!-- Header -->
           <tr>
-            <td style="background:#1a1a2e;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;">
-                💬 Comment Platform
-              </span>
+            <td style="background:#111110;padding:22px 32px;">
+              <table cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="background:#e8673a;border-radius:5px;
+                             width:28px;height:28px;text-align:center;
+                             vertical-align:middle;">
+                    <span style="color:#ffffff;font-size:15px;font-weight:800;
+                                 font-family:Georgia,serif;line-height:28px;">K</span>
+                  </td>
+                  <td style="padding-left:9px;">
+                    <span style="color:#f0ede8;font-size:16px;font-weight:700;
+                                 letter-spacing:-0.2px;">Kommies</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
           <!-- Body -->
           <tr>
-            <td style="padding:32px;">
+            <td style="padding:36px 32px;">
               {body_html}
             </td>
           </tr>
+
           <!-- Footer -->
           <tr>
-            <td style="background:#f4f4f5;padding:16px 32px;
-                       font-size:12px;color:#6b7280;text-align:center;">
-              You're receiving this because you have an account on Comment Platform.<br/>
-              © 2025 Comment Platform. All rights reserved.
+            <td style="background:#f4f3f0;padding:18px 32px;
+                       border-top:1px solid #e2deda;">
+              <p style="margin:0;font-size:12px;color:#b8b2a9;text-align:center;line-height:1.6;">
+                You're receiving this because you have an account on Kommies.<br/>
+                © 2025 Kommies. All rights reserved.
+              </p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
   </table>
 </body>
-</html>
-"""
+</html>"""
 
 
 def _button(label: str, url: str) -> str:
-    return f"""
-<a href="{url}" style="display:inline-block;padding:12px 28px;
-   background:#1a1a2e;color:#ffffff;text-decoration:none;
-   border-radius:6px;font-weight:600;font-size:15px;margin:16px 0;">
-  {label}
-</a>
-"""
+    return f"""<table cellpadding="0" cellspacing="0" role="presentation" style="margin:20px 0;">
+  <tr>
+    <td style="background:#e8673a;border-radius:6px;">
+      <a href="{url}"
+         style="display:inline-block;padding:12px 26px;color:#ffffff;
+                text-decoration:none;font-size:14px;font-weight:600;
+                letter-spacing:-0.1px;">
+        {label}
+      </a>
+    </td>
+  </tr>
+</table>"""
 
 
 def _h1(text: str) -> str:
-    return f'<h1 style="margin:0 0 16px;color:#111827;font-size:24px;">{text}</h1>'
+    return (
+        f'<h1 style="margin:0 0 14px;color:#1a1917;font-size:22px;'
+        f'font-weight:700;letter-spacing:-0.3px;line-height:1.2;">{text}</h1>'
+    )
 
 
 def _p(text: str) -> str:
-    return f'<p style="margin:0 0 12px;color:#374151;line-height:1.6;">{text}</p>'
+    return (
+        f'<p style="margin:0 0 12px;color:#4a4640;font-size:14px;'
+        f'line-height:1.65;">{text}</p>'
+    )
 
 
 def _divider() -> str:
-    return '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"/>'
+    return '<hr style="border:none;border-top:1px solid #e2deda;margin:24px 0;"/>'
+
+
+def _info_table(rows: list[tuple[str, str]]) -> str:
+    cells = "".join(
+        f'<tr>'
+        f'<td style="padding:6px 0;font-size:13px;color:#807b74;width:120px;vertical-align:top;">{k}</td>'
+        f'<td style="padding:6px 0;font-size:13px;color:#1a1917;font-weight:500;">{v}</td>'
+        f'</tr>'
+        for k, v in rows
+    )
+    return (
+        f'<table cellpadding="0" cellspacing="0" role="presentation" '
+        f'style="width:100%;background:#f4f3f0;border-radius:8px;'
+        f'padding:16px 20px;margin:16px 0;">'
+        f'{cells}'
+        f'</table>'
+    )
+
+
+def _quote(text: str) -> str:
+    return (
+        f'<blockquote style="margin:16px 0;padding:12px 16px;'
+        f'border-left:3px solid #e8673a;background:#fdf0ea;'
+        f'border-radius:0 6px 6px 0;">'
+        f'<p style="margin:0;font-size:14px;color:#4a4640;'
+        f'line-height:1.6;font-style:italic;">"{text}"</p>'
+        f'</blockquote>'
+    )
 
 
 # ── SMTP SENDER ───────────────────────────────────────────────────────────────
 
 class EmailService:
     def __init__(self):
-        self.smtp_host: str = getattr(settings, "SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port: int = getattr(settings, "SMTP_PORT", 587)
-        self.smtp_user: str = getattr(settings, "SMTP_USER", "")
+        self.smtp_host: str     = getattr(settings, "SMTP_HOST",     "smtp.gmail.com")
+        self.smtp_port: int     = getattr(settings, "SMTP_PORT",     587)
+        self.smtp_user: str     = getattr(settings, "SMTP_USER",     "")
         self.smtp_password: str = getattr(settings, "SMTP_PASSWORD", "")
-        self.from_email: str = getattr(settings, "FROM_EMAIL", "noreply@commentplatform.com")
-        self.from_name: str = getattr(settings, "FROM_NAME", "Comment Platform")
-        self.app_url: str = getattr(settings, "APP_URL", "http://localhost:8000")
-        self.enabled: bool = bool(self.smtp_user and self.smtp_password)
+        self.from_email: str    = getattr(settings, "FROM_EMAIL",    "noreply@kommies.io")
+        self.from_name: str     = getattr(settings, "FROM_NAME",     "Kommies")
+        self.app_url: str       = getattr(settings, "APP_URL",       "http://localhost:8000")
+        self.enabled: bool      = bool(self.smtp_user and self.smtp_password)
 
     def _send_sync(self, to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-        """Synchronous SMTP send — run in a thread via asyncio."""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"{self.from_name} <{self.from_email}>"
-        msg["To"] = to_email
+        msg["From"]    = f"{self.from_name} <{self.from_email}>"
+        msg["To"]      = to_email
 
         if text_body:
             msg.attach(MIMEText(text_body, "plain"))
@@ -133,7 +185,6 @@ class EmailService:
             return False
 
     async def _send(self, to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-        """Async wrapper — offloads blocking SMTP to thread pool."""
         if not self.enabled:
             logger.warning(f"[EMAIL DISABLED] Would send '{subject}' to {to_email}")
             return False
@@ -148,29 +199,46 @@ class EmailService:
     async def send_verification(self, email: str, full_name: Optional[str], token: str) -> bool:
         verify_url = f"{self.app_url}/api/v1/auth/verify-email/{token}"
         name = full_name or "there"
-        html = _base_template("Verify your email", (
+        html = _base_template("Verify your email — Kommies", (
             _h1("Verify your email address")
-            + _p(f"Hi {name}, welcome to Comment Platform!")
-            + _p("Click the button below to verify your email and activate your account.")
+            + _p(f"Hi {name}, welcome to Kommies! One quick step to get started:")
             + _button("Verify Email", verify_url)
-            + _p(f'Or copy this link: <a href="{verify_url}" style="color:#6366f1;">{verify_url}</a>')
+            + _p(
+                f'Or paste this link into your browser:<br/>'
+                f'<a href="{verify_url}" style="color:#e8673a;font-size:12px;'
+                f'word-break:break-all;">{verify_url}</a>'
+            )
             + _divider()
-            + _p("This link expires in 24 hours. If you didn't create an account, ignore this email.")
+            + _p(
+                '<span style="font-size:12px;color:#b8b2a9;">'
+                'This link expires in 24 hours. '
+                "If you didn't create an account, you can safely ignore this email."
+                '</span>'
+            )
         ))
-        return await self._send(email, "Verify your Comment Platform account", html)
+        return await self._send(email, "Verify your Kommies account", html)
 
     async def send_password_reset(self, email: str, full_name: Optional[str], token: str) -> bool:
         reset_url = f"{self.app_url}/reset-password?token={token}"
         name = full_name or "there"
-        html = _base_template("Reset your password", (
+        html = _base_template("Reset your password — Kommies", (
             _h1("Reset your password")
-            + _p(f"Hi {name}, we received a request to reset your password.")
+            + _p(f"Hi {name}, we received a request to reset your Kommies password.")
             + _button("Reset Password", reset_url)
-            + _p(f'Or copy this link: <a href="{reset_url}" style="color:#6366f1;">{reset_url}</a>')
+            + _p(
+                f'Or paste this link into your browser:<br/>'
+                f'<a href="{reset_url}" style="color:#e8673a;font-size:12px;'
+                f'word-break:break-all;">{reset_url}</a>'
+            )
             + _divider()
-            + _p("This link expires in 1 hour. If you didn't request this, you can safely ignore this email.")
+            + _p(
+                '<span style="font-size:12px;color:#b8b2a9;">'
+                'This link expires in 1 hour. '
+                "If you didn't request a reset, you can safely ignore this email."
+                '</span>'
+            )
         ))
-        return await self._send(email, "Reset your Comment Platform password", html)
+        return await self._send(email, "Reset your Kommies password", html)
 
     async def send_new_comment_notification(
         self,
@@ -181,23 +249,19 @@ class EmailService:
         thread_url: Optional[str],
         moderation_url: str,
     ) -> bool:
-        preview = comment_content[:300] + ("..." if len(comment_content) > 300 else "")
-        thread_link = f'<a href="{thread_url}" style="color:#6366f1;">{thread_url}</a>' if thread_url else "N/A"
-        html = _base_template("New comment on your website", (
-            _h1("💬 New comment posted")
+        preview = comment_content[:300] + ("\u2026" if len(comment_content) > 300 else "")
+        thread_val = (
+            f'<a href="{thread_url}" style="color:#e8673a;">{thread_url}</a>'
+            if thread_url else "\u2014"
+        )
+        html = _base_template(f"New comment on {website_name} \u2014 Kommies", (
+            _h1("New comment posted")
             + _p(f"A new comment was posted on <strong>{website_name}</strong>.")
-            + f'<table style="width:100%;background:#f9fafb;border-radius:6px;padding:16px;margin:16px 0;">'
-            + f'<tr><td><strong>Author:</strong> {author_name}</td></tr>'
-            + f'<tr><td><strong>Page:</strong> {thread_link}</td></tr>'
-            + f'<tr><td style="padding-top:8px;"><em>"{preview}"</em></td></tr>'
-            + '</table>'
+            + _info_table([("Author", author_name), ("Page", thread_val)])
+            + _quote(preview)
             + _button("Review in Dashboard", moderation_url)
         ))
-        return await self._send(
-            notify_email,
-            f"New comment on {website_name}",
-            html,
-        )
+        return await self._send(notify_email, f"New comment on {website_name}", html)
 
     async def send_moderation_needed(
         self,
@@ -206,14 +270,18 @@ class EmailService:
         pending_count: int,
         moderation_url: str,
     ) -> bool:
-        html = _base_template("Comments awaiting moderation", (
-            _h1("🔔 Comments need your attention")
-            + _p(f"You have <strong>{pending_count} comment(s)</strong> awaiting moderation on <strong>{website_name}</strong>.")
+        s = "s" if pending_count != 1 else ""
+        html = _base_template(f"Comments need review \u2014 {website_name}", (
+            _h1(f"{pending_count} comment{s} need{'s' if not s else ''} review")
+            + _p(
+                f"You have <strong>{pending_count} comment{s}</strong> awaiting moderation "
+                f"on <strong>{website_name}</strong>."
+            )
             + _button("Review Now", moderation_url)
         ))
         return await self._send(
             notify_email,
-            f"{pending_count} comment(s) awaiting moderation on {website_name}",
+            f"{pending_count} comment{s} awaiting moderation on {website_name}",
             html,
         )
 
@@ -225,20 +293,22 @@ class EmailService:
         reply_content: str,
         thread_url: Optional[str],
     ) -> bool:
-        preview = reply_content[:300] + ("..." if len(reply_content) > 300 else "")
-        thread_link = (
-            _button("View Reply", thread_url) if thread_url
-            else _p("Visit the website to see the reply.")
+        preview = reply_content[:300] + ("\u2026" if len(reply_content) > 300 else "")
+        cta = (
+            _button("View Reply", thread_url)
+            if thread_url
+            else _p("Visit the website to see the full reply.")
         )
-        html = _base_template("Someone replied to your comment", (
-            _h1("💬 You got a reply!")
+        html = _base_template(f"{replier_name} replied to your comment \u2014 Kommies", (
+            _h1("You got a reply")
             + _p(f"Hi {author_name}, <strong>{replier_name}</strong> replied to your comment.")
-            + f'<blockquote style="border-left:4px solid #6366f1;margin:16px 0;padding:8px 16px;'
-            + f'background:#f5f3ff;color:#374151;border-radius:0 4px 4px 0;">'
-            + f'<em>"{preview}"</em></blockquote>'
-            + thread_link
+            + _quote(preview)
+            + cta
             + _divider()
-            + _p('<a href="#" style="color:#9ca3af;font-size:12px;">Unsubscribe from reply notifications</a>')
+            + _p(
+                '<a href="#" style="font-size:12px;color:#b8b2a9;">'
+                'Unsubscribe from reply notifications</a>'
+            )
         ))
         return await self._send(
             author_email,
@@ -255,17 +325,17 @@ class EmailService:
         period_end: str,
     ) -> bool:
         name = full_name or "there"
-        html = _base_template("Subscription confirmed", (
-            _h1("🎉 You're all set!")
-            + _p(f"Hi {name}, your subscription to the <strong>{plan_name}</strong> plan is now active.")
-            + f'<table style="width:100%;background:#f9fafb;border-radius:6px;padding:16px;margin:16px 0;">'
-            + f'<tr><td><strong>Plan:</strong> {plan_name}</td></tr>'
-            + f'<tr><td><strong>Billing:</strong> {billing_cycle.capitalize()}</td></tr>'
-            + f'<tr><td><strong>Next renewal:</strong> {period_end}</td></tr>'
-            + '</table>'
+        html = _base_template(f"You're on {plan_name} \u2014 Kommies", (
+            _h1("You're all set!")
+            + _p(f"Hi {name}, your <strong>{plan_name}</strong> plan is now active.")
+            + _info_table([
+                ("Plan",    plan_name),
+                ("Billing", billing_cycle.capitalize()),
+                ("Renews",  period_end),
+            ])
             + _button("Go to Dashboard", f"{self.app_url}/dashboard")
         ))
-        return await self._send(email, f"Welcome to {plan_name} — Comment Platform", html)
+        return await self._send(email, f"Welcome to {plan_name} \u2014 Kommies", html)
 
 
 # Singleton instance

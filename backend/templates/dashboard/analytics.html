@@ -1,125 +1,262 @@
 {% extends 'base.html' %}
-{% block title %}Analytics - {{ website.name }}{% endblock %}
+
+{% block title %}Analytics — {{ website.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:website-detail' website.id %}">{{ website.name }}</a>
+<span class="sep">/</span>
+<span class="cur">Analytics</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .an-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .chart-wrap {
+        position: relative;
+        height: 260px;
+    }
+
+    .commenter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 0;
+    }
+
+    .commenter-row+.commenter-row {
+        border-top: 1px solid #e2deda;
+    }
+
+    .cmtr-rank {
+        font-family: 'Syne', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #b8b2a9;
+        width: 20px;
+        flex-shrink: 0;
+    }
+
+    .cmtr-name {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .cmtr-name-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1a1917;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cmtr-email {
+        font-size: 11px;
+        color: #807b74;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cmtr-count {
+        font-family: 'Syne', sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1a1917;
+        flex-shrink: 0;
+    }
+
+    .thread-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+    }
+
+    .thread-bar-row+.thread-bar-row {
+        border-top: 1px solid #e2deda;
+    }
+
+    .tbr-label {
+        font-size: 12px;
+        color: #4a4640;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1;
+        font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .tbr-bar-wrap {
+        width: 100px;
+        height: 6px;
+        background: #eceae6;
+        border-radius: 99px;
+        flex-shrink: 0;
+    }
+
+    .tbr-bar {
+        height: 6px;
+        background: #e8673a;
+        border-radius: 99px;
+    }
+
+    .tbr-count {
+        font-family: 'Syne', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: #1a1917;
+        flex-shrink: 0;
+        width: 28px;
+        text-align: right;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <a href="{% url 'dashboard:website-detail' website.id %}"
-        class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">
-        <i class="fas fa-arrow-left mr-1"></i> Back to {{ website.name }}
-    </a>
-    <h1 class="text-3xl font-bold text-gray-900">Analytics</h1>
-    <p class="mt-1 text-sm text-gray-600">Last 30 days — {{ website.domain }}</p>
-</div>
 
-<!-- Summary cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <div class="card p-5 border-l-4 border-l-indigo-500">
-        <div class="text-3xl font-bold text-gray-900">{{ total_comments }}</div>
-        <div class="text-sm text-gray-500 mt-1">Total Comments</div>
-    </div>
-    <div class="card p-5 border-l-4 border-l-green-500">
-        <div class="text-3xl font-bold text-gray-900">{{ website.total_threads }}</div>
-        <div class="text-sm text-gray-500 mt-1">Threads</div>
-    </div>
-    <div class="card p-5 border-l-4 border-l-red-500">
-        <div class="text-3xl font-bold text-gray-900">{{ spam_count }}</div>
-        <div class="text-sm text-gray-500 mt-1">Spam Caught</div>
-    </div>
-    <div class="card p-5 border-l-4 border-l-yellow-500">
-        <div class="text-3xl font-bold text-gray-900">{{ spam_rate }}%</div>
-        <div class="text-sm text-gray-500 mt-1">Spam Rate</div>
+<div class="page-hd">
+    <div>
+        <h1>Analytics</h1>
+        <p>{{ website.name }} — last 30 days</p>
     </div>
 </div>
 
-<!-- Daily comments chart -->
-<div class="card mb-8">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Comments per Day</h2>
+<!-- Top stats -->
+<div class="an-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Comments</div>
+        <div class="stat-value">{{ total_comments }}</div>
     </div>
-    <div class="p-6">
-        {% if daily_comments %}
-        <div class="flex items-end gap-1 h-40">
-            {% for day in daily_comments %}
-            {% with max_count=daily_comments.0.count %}
-            <div class="flex-1 flex flex-col items-center gap-1 group relative">
-                <div
-                    class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-10">
-                    {{ day.day }}: {{ day.count }}
-                </div>
-                <!-- prettier-ignore -->
-                <div class="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t transition"
-                    style="height: {% widthratio day.count max_count 100 %}%">
-                </div>
-            </div>
-            {% endwith %}
-            {% endfor %}
-        </div>
-        <div class="flex justify-between text-xs text-gray-400 mt-2">
-            <span>{{ daily_comments.0.day }}</span>
-            <span>{{ daily_comments|last|dictsort:"day"|last }}</span>
-        </div>
-        {% else %}
-        <div class="text-center py-12 text-gray-400">
-            <span class="text-4xl block mb-3">📊</span>
-            No comment data yet for this period.
-        </div>
-        {% endif %}
+    <div class="stat-card">
+        <div class="stat-label">Spam</div>
+        <div class="stat-value">{{ spam_count }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Spam Rate</div>
+        <div class="stat-value">{{ spam_rate }}%</div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Daily chart -->
+<div class="card mb-6">
+    <div class="card-header">
+        <div class="card-title">Comments per Day</div>
+    </div>
+    <div style="padding:20px;">
+        <div class="chart-wrap">
+            <canvas id="daily-chart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
     <!-- Top commenters -->
-    <div class="card">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Top Commenters</h2>
-        </div>
-        <div class="divide-y divide-gray-100">
-            {% for commenter in top_commenters %}
-            <div class="px-6 py-3 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span class="text-xs font-bold text-indigo-600">{{ commenter.author_name|first|upper }}</span>
-                    </div>
-                    <div>
-                        <div class="text-sm font-medium text-gray-900">{{ commenter.author_name }}</div>
-                        {% if commenter.author_email %}
-                        <div class="text-xs text-gray-400">{{ commenter.author_email }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                <span class="text-sm font-bold text-indigo-600">{{ commenter.count }}</span>
+    <div class="card card-p">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:#1a1917;margin-bottom:14px;">Top
+            Commenters</div>
+        {% for c in top_commenters %}
+        <div class="commenter-row">
+            <div class="cmtr-rank">{{ forloop.counter }}</div>
+            <div class="cmtr-name">
+                <div class="cmtr-name-text">{{ c.author_name }}</div>
+                <div class="cmtr-email">{{ c.author_email }}</div>
             </div>
-            {% empty %}
-            <div class="px-6 py-8 text-center text-sm text-gray-400">No commenters yet</div>
-            {% endfor %}
+            <div class="cmtr-count">{{ c.count }}</div>
         </div>
+        {% empty %}
+        <p style="font-size:13px;color:#807b74;padding:16px 0;text-align:center;">No data yet.</p>
+        {% endfor %}
     </div>
 
     <!-- Top threads -->
-    <div class="card">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Most Active Threads</h2>
-        </div>
-        <div class="divide-y divide-gray-100">
-            {% for thread in top_threads %}
-            <div class="px-6 py-3 flex items-center justify-between">
-                <div class="flex-1 min-w-0 mr-4">
-                    <div class="text-sm font-medium text-gray-900 truncate">
-                        {{ thread.title|default:thread.identifier }}
-                    </div>
-                    {% if thread.url %}
-                    <a href="{{ thread.url }}" target="_blank"
-                        class="text-xs text-indigo-500 hover:underline truncate block">
-                        {{ thread.url|truncatechars:50 }}
-                    </a>
-                    {% endif %}
-                </div>
-                <span class="text-sm font-bold text-indigo-600 flex-shrink-0">{{ thread.comment_count }} 💬</span>
+    <div class="card card-p">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:#1a1917;margin-bottom:14px;">Most
+            Active Threads</div>
+        {% if top_threads %}
+        {% with max_count=top_threads.0.comment_count %}
+        {% for thread in top_threads %}
+        <div class="thread-bar-row">
+            <div class="tbr-label">{{ thread.title|default:thread.identifier|truncatechars:40 }}</div>
+            <div class="tbr-bar-wrap">
+                <div class="tbr-bar" data-count="{{ thread.comment_count }}" data-max="{{ max_count }}"></div>
             </div>
-            {% empty %}
-            <div class="px-6 py-8 text-center text-sm text-gray-400">No threads yet</div>
-            {% endfor %}
+            <div class="tbr-count">{{ thread.comment_count }}</div>
         </div>
+        {% endfor %}
+        {% endwith %}
+        {% else %}
+        <p style="font-size:13px;color:#807b74;padding:16px 0;text-align:center;">No data yet.</p>
+        {% endif %}
     </div>
+
 </div>
+
+<script id="daily-comments-data" type="application/json">{{ daily_comments|safe }}</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Thread bar widths from data attributes
+    document.querySelectorAll('.tbr-bar[data-count]').forEach(function (el) {
+        var count = parseFloat(el.getAttribute('data-count')) || 0;
+        var max = parseFloat(el.getAttribute('data-max')) || 1;
+        el.style.width = (count / max * 100) + '%';
+    });
+
+    var dailyData = JSON.parse(document.getElementById('daily-comments-data').textContent);
+    var labels = dailyData.map(function (d) { return d.day; });
+    var counts = dailyData.map(function (d) { return d.count; });
+
+    var ctx = document.getElementById('daily-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Comments',
+                data: counts,
+                backgroundColor: 'rgba(232,103,58,0.15)',
+                borderColor: '#e8673a',
+                borderWidth: 1.5,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1917',
+                    titleFont: { family: 'Syne', weight: '600' },
+                    bodyFont: { family: 'IBM Plex Sans' },
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'IBM Plex Mono', size: 11 }, color: '#807b74' },
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#eceae6' },
+                    ticks: { font: { family: 'IBM Plex Mono', size: 11 }, color: '#807b74', precision: 0 },
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}
