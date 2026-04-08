@@ -66,9 +66,10 @@ class WebhookService:
         If delivery fails it stays in the DB for retry by the background worker.
         """
         # Only fire if the website has a webhook URL configured
+        from app.models import NotificationSettings
         ns_result = await db.execute(
-            select(__import__('app.models', fromlist=['NotificationSettings']).NotificationSettings)
-            .where(__import__('app.models', fromlist=['NotificationSettings']).NotificationSettings.website_id == website.id)
+            select(NotificationSettings)
+            .where(NotificationSettings.website_id == website.id)
         )
         ns = ns_result.scalar_one_or_none()
         webhook_url = ns.webhook_url if ns else None

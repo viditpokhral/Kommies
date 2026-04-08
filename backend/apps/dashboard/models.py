@@ -6,6 +6,7 @@ All models are UNMANAGED (managed=False) - tables exist via bootstrap.sql
 from django.db import models # type: ignore
 from django.utils import timezone # type: ignore
 import uuid
+from django.contrib.postgres.fields import ArrayField
 
 
 # ── AUTH SCHEMA ───────────────────────────────────────────────────────────────
@@ -19,8 +20,9 @@ class SuperUser(models.Model):
     phone = models.CharField(max_length=50, null=True, blank=True)
     status = models.CharField(max_length=50, default='active')
     email_verified = models.BooleanField(default=False)
+    email_verification_token  = models.CharField(max_length=255, null=True)
     is_admin = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -33,6 +35,9 @@ class SuperUser(models.Model):
     def __str__(self):
         return self.email
 
+    def get_full_name(self):
+        return self.full_name or self.email
+
 
 # ── CORE SCHEMA ───────────────────────────────────────────────────────────────
 
@@ -43,10 +48,15 @@ class Website(models.Model):
     domain = models.CharField(max_length=255)
     api_key = models.CharField(max_length=100, unique=True)
     api_secret = models.CharField(max_length=100)
+    from django.contrib.postgres.fields import ArrayField
     status = models.CharField(max_length=50, default='active')
+
+    allowed_origins = ArrayField(models.TextField(), default=list, blank=True)
+
+    settings = models.JSONField(default=dict, blank=True)          # ← added
     total_threads = models.IntegerField(default=0)
     total_comments = models.IntegerField(default=0)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -69,7 +79,7 @@ class Thread(models.Model):
     approved_comment_count = models.IntegerField(default=0)
     last_comment_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -87,7 +97,7 @@ class Comment(models.Model):
         ('trash', 'Trash'),
         ('deleted', 'Deleted'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     thread = models.ForeignKey(Thread, on_delete=models.CASCADE, db_column='thread_id')
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, db_column='parent_id')
@@ -99,7 +109,7 @@ class Comment(models.Model):
     upvotes = models.IntegerField(default=0)
     downvotes = models.IntegerField(default=0)
     is_deleted = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -120,7 +130,7 @@ class Plan(models.Model):
     yearly_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     requests_per_month = models.IntegerField()
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -139,7 +149,7 @@ class Subscription(models.Model):
     requests_limit = models.IntegerField()
     current_period_start = models.DateTimeField()
     current_period_end = models.DateTimeField()
-    created_at = models.DateTimeField(default=timezone.now)  # ← ADD THIS LINE
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -160,14 +170,13 @@ class ModerationQueue(models.Model):
     reason = models.CharField(max_length=255)
     severity = models.CharField(max_length=20, default='medium')
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
         db_table = 'moderation"."queue'
         ordering = ['-created_at']
 
-# ── Banned Entities ────────────────────────────────────────────────────────────
 
 class BannedEntity(models.Model):
     ENTITY_TYPES = [('email', 'Email'), ('ip', 'IP Address'), ('domain', 'Domain')]
@@ -179,7 +188,7 @@ class BannedEntity(models.Model):
     reason = models.TextField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -188,6 +197,7 @@ class BannedEntity(models.Model):
 
     def __str__(self):
         return f"{self.entity_type}: {self.entity_value}"
+
 
 class ModerationReport(models.Model):
     REASON_CHOICES = [
@@ -207,7 +217,7 @@ class ModerationReport(models.Model):
     description = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
@@ -223,7 +233,7 @@ class SiteMember(models.Model):
     super_user = models.ForeignKey(SuperUser, on_delete=models.CASCADE, db_column='super_user_id', related_name='site_memberships')
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='moderator')
     invited_by = models.UUIDField(null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -508,6 +508,8 @@
       }
     },
 
+    // In the register() function — replace lines 511–536
+
     async register() {
       const name = (document.getElementById("k-rg-name")?.value || "").trim();
       const email = (document.getElementById("k-rg-email")?.value || "").trim();
@@ -516,19 +518,28 @@
       const btn = document.getElementById("k-rg-btn");
 
       if (!name) { errEl.textContent = "Display name is required."; return; }
+      if (name.length < 2 || name.length > 100) { errEl.textContent = "Name must be 2–100 characters."; return; }
       if (!email) { errEl.textContent = "Email is required."; return; }
-      if (!pass || pass.length < 6) { errEl.textContent = "Password must be at least 6 characters."; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = "Enter a valid email address."; return; }
+      if (!pass || pass.length < 8) { errEl.textContent = "Password must be at least 8 characters."; return; }  // ← was 6
       errEl.textContent = "";
       btn.disabled = true; btn.textContent = "Creating...";
 
+      // Derive username from display name: lowercase, spaces → hyphens, strip non-alphanum/-/_, max 30 chars
+      const username = name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-_]/g, "")
+        .slice(0, 30)
+        || email.split("@")[0].slice(0, 30);  // fallback to email prefix if name produces empty string
+
       try {
-        await api("POST", "/commenters/register", { display_name: name, email, password: pass });
-        // Show success — user needs to verify email before logging in
+        await api("POST", "/commenters/register", { display_name: name, username, email, password: pass });
         const panel = document.getElementById("k-panel-register");
         if (panel) panel.innerHTML = `
-          <p style="color:#46a508;font-size:13px;font-weight:600;">Account created!</p>
-          <p class="k-auth-hint">Check your inbox to verify your email, then sign in.</p>
-          <button class="k-btn-sm" style="margin-top:8px;" onclick="Kommies.switchTab('login')">Go to sign in</button>`;
+      <p style="color:#46a508;font-size:13px;font-weight:600;">Account created!</p>
+      <p class="k-auth-hint">Check your inbox to verify your email, then sign in.</p>
+      <button class="k-btn-sm" style="margin-top:8px;" onclick="Kommies.switchTab('login')">Go to sign in</button>`;
       } catch (e) {
         errEl.textContent = e.message;
         btn.disabled = false; btn.textContent = "Create account";

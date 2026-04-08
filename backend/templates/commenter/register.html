@@ -1,0 +1,47 @@
+{% extends "commenter/base.html" %}
+{% block title %}Create account · Kommies{% endblock %}
+
+{% block content %}
+<div class="k-container" style="max-width:440px;">
+
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:36px;margin-bottom:8px;">✨</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:4px;">Create an account</h1>
+    <p style="font-size:14px;color:var(--muted);">Join Kommies to keep track of your comments.</p>
+  </div>
+
+  <div class="k-card">
+    {% if error %}
+    <div class="k-alert k-alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'commenter:register' %}">
+      {% csrf_token %}
+
+      <div class="k-field">
+        <label class="k-label">Display name <span style="color:var(--accent);">*</span></label>
+        <input class="k-input" type="text" name="display_name" value="{{ form.display_name|default:'' }}" autocomplete="name" minlength="2" maxlength="100" required />
+        <p class="k-hint">This is shown on your comments.</p>
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">Email address <span style="color:var(--accent);">*</span></label>
+        <input class="k-input" type="email" name="email" value="{{ form.email|default:'' }}" autocomplete="email" required />
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">Password <span style="color:var(--accent);">*</span></label>
+        <input class="k-input" type="password" name="password" autocomplete="new-password" minlength="8" required />
+        <p class="k-hint">At least 8 characters.</p>
+      </div>
+
+      <button type="submit" class="k-btn" style="width:100%;margin-top:4px;">Create account</button>
+    </form>
+  </div>
+
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:18px;">
+    Already have an account? <a href="{% url 'commenter:login' %}" class="k-link">Sign in</a>
+  </p>
+
+</div>
+{% endblock %}

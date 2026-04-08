@@ -1,0 +1,67 @@
+{% extends "registration/auth_base.html" %}
+{% block title %}Create Account — Kommies{% endblock %}
+
+{% block card %}
+<div class="auth-icon">
+    <i class="fas fa-rocket" style="color:#e8673a;font-size:18px;"></i>
+</div>
+<div class="auth-title">Create your account</div>
+<p class="auth-sub">Start managing comments on your website.</p>
+
+{% if error %}
+<div style="background:#fdecea;border:1px solid #f5c6c3;border-radius:6px;
+              padding:10px 14px;margin-bottom:16px;font-size:13px;color:#b83232;">
+    <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>{{ error }}
+</div>
+{% endif %}
+
+<form method="post" action="{% url 'register' %}">
+    {% csrf_token %}
+
+    <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#1a1917;margin-bottom:5px;">
+            Full name
+        </label>
+        <input class="s-input" type="text" name="full_name" value="{{ form_data.full_name|default:'' }}"
+            placeholder="Your name" autocomplete="name" />
+    </div>
+
+    <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#1a1917;margin-bottom:5px;">
+            Email address <span style="color:#b83232;">*</span>
+        </label>
+        <input class="s-input" type="email" name="email" value="{{ form_data.email|default:'' }}"
+            placeholder="you@example.com" autocomplete="email" required />
+    </div>
+
+    <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#1a1917;margin-bottom:5px;">
+            Password <span style="color:#b83232;">*</span>
+        </label>
+        <input class="s-input" type="password" name="password" placeholder="Min. 8 characters"
+            autocomplete="new-password" required />
+    </div>
+
+    <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#1a1917;margin-bottom:5px;">
+            Company / website name
+        </label>
+        <input class="s-input" type="text" name="company_name" value="{{ form_data.company_name|default:'' }}"
+            placeholder="Optional" />
+    </div>
+
+    <button type="submit" class="btn-auth btn-auth-primary">Create account</button>
+</form>
+
+<div class="auth-divider"></div>
+<div style="text-align:center;font-size:13px;color:#807b74;">
+    Already have an account?
+    <a href="{% url 'login' %}" style="color:#e8673a;font-weight:500;">Sign in</a>
+</div>
+{% endblock %}
+
+{% block footer %}
+<p style="text-align:center;font-size:12px;color:#b8b2a9;margin-top:16px;">
+    After registering, check your inbox to verify your email before signing in.
+</p>
+{% endblock %}

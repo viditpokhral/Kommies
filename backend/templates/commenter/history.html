@@ -1,0 +1,125 @@
+{% extends "commenter/base.html" %}
+{% block title %}Comment history · Kommies{% endblock %}
+{% block nav_history %}active{% endblock %}
+
+{% block extra_css %}
+.k-history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  transition: border-color .15s;
+}
+.k-history-item:hover { border-color: #c8c0b8; }
+.k-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.k-site-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(232,103,58,.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+.k-site-tag:hover { background: rgba(232,103,58,.15); }
+.k-thread-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.k-history-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 8px;
+  white-space: pre-line;
+}
+.k-history-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+{% endblock %}
+
+{% block content %}
+<div class="k-container-wide">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <h1 class="k-page-title" style="margin-bottom:0;">Comment history</h1>
+    {% if total %}
+    <span style="font-size:13px;color:var(--muted);">{{ total }} comment{{ total|pluralize }}</span>
+    {% endif %}
+  </div>
+
+  {% if error %}
+  <div class="k-alert k-alert-error">{{ error }}</div>
+  {% endif %}
+
+  {% if items %}
+    {% for item in items %}
+    <div class="k-history-item">
+      <div class="k-history-meta">
+        <span class="k-badge k-badge-{{ item.status }}">{{ item.status }}</span>
+
+        <a href="{% if item.thread_url %}{{ item.thread_url }}{% else %}#{% endif %}"
+           class="k-site-tag" target="_blank" rel="noopener">
+          {{ item.website_name }}
+        </a>
+
+        <span class="k-thread-label">
+          {% if item.thread_title %}
+            {{ item.thread_title }}
+          {% else %}
+            {{ item.thread_identifier }}
+          {% endif %}
+        </span>
+
+        {% if item.parent_id %}
+        <span class="k-thread-label" style="color:#b0a89e;">↳ reply</span>
+        {% endif %}
+      </div>
+
+      <div class="k-history-content">{{ item.content }}</div>
+
+      <div class="k-history-footer">
+        <span>{{ item.created_at|date:"M j, Y" }}</span>
+        <span>▲ {{ item.upvotes }} · ▼ {{ item.downvotes }}</span>
+        {% if item.is_edited %}<span>· edited</span>{% endif %}
+        {% if item.thread_url %}
+        <a href="{{ item.thread_url }}" class="k-link" style="font-size:12px;" target="_blank" rel="noopener">View thread →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Pagination -->
+    {% if pages > 1 %}
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:24px;">
+      {% if prev_page %}
+      <a href="?page={{ prev_page }}" class="k-btn-ghost">← Previous</a>
+      {% endif %}
+      <span style="padding:9px 14px;font-size:13px;color:var(--muted);">Page {{ page }} of {{ pages }}</span>
+      {% if next_page %}
+      <a href="?page={{ next_page }}" class="k-btn-ghost">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+    <div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:48px;margin-bottom:12px;">💬</div>
+      <p style="font-size:16px;font-weight:600;margin-bottom:4px;">No comments yet</p>
+      <p style="font-size:14px;color:var(--muted);">Comments you post while signed in will appear here.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

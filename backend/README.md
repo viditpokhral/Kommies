@@ -5,6 +5,7 @@ Beautiful admin dashboard and management interface for the Comment Platform.
 ## 🎨 Features
 
 ### Admin Interface
+
 - **Beautiful UI** with django-admin-interface theme
 - **Color-coded** status badges and severity indicators
 - **Bulk actions** for moderation (approve, spam, trash)
@@ -12,6 +13,7 @@ Beautiful admin dashboard and management interface for the Comment Platform.
 - **Quick filters** and search
 
 ### Dashboard Views
+
 - **Homepage**: Overview of all websites with stats
 - **Website Detail**: Deep dive into individual website performance
 - **Moderation Queue**: Review and moderate pending comments
@@ -19,6 +21,7 @@ Beautiful admin dashboard and management interface for the Comment Platform.
 - **API Integration**: Test FastAPI connectivity
 
 ### Models (Unmanaged - Read from Existing DB)
+
 - SuperUser (Users)
 - Website
 - Thread
@@ -63,10 +66,12 @@ python manage.py runserver 8001
 ### Access Points
 
 **Admin Panel**: http://localhost:8001/admin
+
 - Login with your superuser credentials
 - Manage users, websites, comments, subscriptions
 
 **Dashboard**: http://localhost:8001/dashboard
+
 - User-friendly interface for website owners
 - View stats, moderate comments, see analytics
 
@@ -106,6 +111,7 @@ backend/
 ### 1. Admin Interface
 
 Beautiful, color-coded admin with:
+
 - **Status badges**: Green (active), Yellow (pending), Red (spam/suspended)
 - **Progress bars**: Visual usage indicators for subscriptions
 - **Quick actions**: Approve/spam/trash comments in bulk
@@ -115,24 +121,28 @@ Beautiful, color-coded admin with:
 ### 2. Dashboard Views
 
 **Homepage** (`/dashboard/`)
+
 - Overview of all websites
 - Total comments/threads stats
 - Subscription info with usage bar
 - Quick access to each website
 
 **Website Detail** (`/dashboard/website/<id>/`)
+
 - Today's stats
 - Recent comments with inline moderation
 - API integration code snippet
 - Quick links to moderation queue & analytics
 
 **Moderation Queue** (`/dashboard/website/<id>/moderation/`)
+
 - All pending comments
 - One-click approve/reject
 - Spam score indicators
 - Bulk actions
 
 **Analytics** (`/dashboard/website/<id>/analytics/`)
+
 - 30-day comment trends
 - Top commenters
 - Top threads by engagement
@@ -169,6 +179,7 @@ Both services share the same PostgreSQL database:
 ```
 
 **What Each Does**:
+
 - **Django**: Admin panel, dashboard UI, moderation interface
 - **FastAPI**: Public comment API, webhooks, spam detection
 
@@ -193,6 +204,7 @@ class CommentAdmin(admin.ModelAdmin):
 ### Styling
 
 Templates use Tailwind CSS via CDN. Edit templates to customize:
+
 - `templates/base.html` - Layout, navigation
 - `templates/dashboard/*.html` - Page-specific styling
 
@@ -226,7 +238,7 @@ pending = Comment.objects.filter(
 # config/settings.py
 DEBUG = False
 ALLOWED_HOSTS = ['yourdomain.com']
-SECRET_KEY = os.getenv('SECRET_KEY')  # Use strong secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')  # Use strong secret!
 ```
 
 ### Gunicorn
@@ -250,6 +262,7 @@ location /dashboard/ {
 ## 📞 Support
 
 For questions or issues:
+
 1. Check Django logs: `logs/django.log`
 2. Enable DEBUG mode for detailed errors
 3. Verify database connection

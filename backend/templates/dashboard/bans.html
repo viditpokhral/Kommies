@@ -202,7 +202,7 @@
             {% for ban in by_type.email %}
             <div class="ban-row" id="ban-{{ ban.id }}">
                 <div>
-                    <div class="ban-value">{{ ban.value }}</div>
+                    <div class="ban-value">{{ ban.entity_value }}</div>
                     {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
                 </div>
                 <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>
@@ -222,7 +222,7 @@
             {% for ban in by_type.ip %}
             <div class="ban-row" id="ban-{{ ban.id }}">
                 <div>
-                    <div class="ban-value">{{ ban.value }}</div>
+                    <div class="ban-value">{{ ban.entity_value }}</div>
                     {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
                 </div>
                 <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>
@@ -242,7 +242,7 @@
             {% for ban in by_type.domain %}
             <div class="ban-row" id="ban-{{ ban.id }}">
                 <div>
-                    <div class="ban-value">{{ ban.value }}</div>
+                    <div class="ban-value">{{ ban.entity_value }}</div>
                     {% if ban.reason %}<div class="ban-reason">{{ ban.reason }}</div>{% endif %}
                 </div>
                 <div class="ban-date">{{ ban.created_at|date:"M j, Y" }}</div>

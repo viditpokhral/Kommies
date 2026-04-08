@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Website{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<span class="cur">Add Website</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .add-form {
+        max-width: 560px;
+    }
+
+    .field-group {
+        margin-bottom: 18px;
+    }
+
+    .field-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #1a1917;
+        margin-bottom: 5px;
+    }
+
+    .field-req {
+        color: #b83232;
+        margin-left: 2px;
+    }
+
+    .field-input {
+        display: block;
+        width: 100%;
+        padding: 9px 12px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 13px;
+        color: #1a1917;
+        background: #fff;
+        border: 1px solid #e2deda;
+        border-radius: 6px;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+
+    .field-input:focus {
+        border-color: #e8673a;
+        box-shadow: 0 0 0 3px rgba(232, 103, 58, .12);
+    }
+
+    .field-hint {
+        font-size: 11px;
+        color: #b8b2a9;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-hd">
+    <div>
+        <h1>Add Website</h1>
+        <p>Connect a new website to start collecting comments.</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" style="max-width:560px;">
+    <i class="fas fa-exclamation-circle" style="flex-shrink:0;margin-top:1px;"></i> {{ error }}
+</div>
+{% endif %}
+
+<form method="POST" action="{% url 'dashboard:add-website' %}" class="add-form">
+    {% csrf_token %}
+
+    <div class="card card-p">
+
+        <div class="field-group">
+            <label class="field-label">Site name <span class="field-req">*</span></label>
+            <input class="field-input" type="text" name="name" value="{{ form_data.name|default:'' }}"
+                placeholder="My Blog" maxlength="255" required />
+            <div class="field-hint">Displayed in your dashboard.</div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Domain <span class="field-req">*</span></label>
+            <input class="field-input" type="text" name="domain" value="{{ form_data.domain|default:'' }}"
+                placeholder="myblog.com" maxlength="255" required />
+            <div class="field-hint">Just the domain — no https:// prefix needed.</div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Allowed origins</label>
+            <textarea class="field-input" name="allowed_origins" rows="3" style="height:auto;resize:vertical;"
+                placeholder="https://myblog.com&#10;https://www.myblog.com">{{ form_data.allowed_origins|default:'' }}</textarea>
+            <div class="field-hint">One origin per line. Leave empty to allow all origins.</div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" name="allow_anonymous" value="1" checked style="width:auto;margin:0;" />
+                Allow guest / anonymous comments
+            </label>
+            <div class="field-hint" style="margin-top:4px;">Visitors can post without registering a commenter account.
+            </div>
+        </div>
+
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Create website</button>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+</form>
+
+{% endblock %}

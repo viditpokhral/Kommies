@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     FROM_NAME: str = "Comment Platform"
     APP_URL: str = "http://localhost:8000"
     # FRONTEND_URL: str = "http://localhost:3000" # TODO - Add a frontend latter and update this
+    COMMENTER_PORTAL_URL: str = "http://localhost:8001"
 
     model_config = {
         "env_file": ".env",

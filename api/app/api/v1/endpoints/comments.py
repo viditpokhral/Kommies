@@ -8,7 +8,7 @@ from typing import Optional
 
 from app.api.v1.endpoints import commenters
 from app.db.session import get_db
-from app.models.core_moderation_analytics import Website
+from app.models.core_moderation_analytics import CommenterAccount, Website
 from app.models import (
     Website, Thread, Comment, CommentHistory, CommentVote,
     NotificationSettings, ModerationQueue, ModerationReport,
@@ -133,6 +133,7 @@ async def create_comment(
     title: Optional[str] = Query(None),
     url: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_commenter: Optional[CommenterAccount] = Depends(commenters.get_optional_commenter),
 ):
     website = await _get_website_by_api_key(api_key, db)
 
@@ -169,9 +170,9 @@ async def create_comment(
     comment = Comment(
         thread_id=thread.id,
         parent_id=payload.parent_id,
-        commenter_id=commenters.id if commenters else None,
-        author_name=commenters.display_name if commenters else payload.author_name,
-        author_email=commenters.email if commenters else payload.author_email,
+        commenter_id=current_commenter.id if current_commenter else None,
+        author_name=current_commenter.display_name if current_commenter else payload.author_name,
+        author_email=current_commenter.email if current_commenter else payload.author_email,
         author_website=payload.author_website,
         author_ip=author_ip,
         author_user_agent=request.headers.get("user-agent"),
@@ -191,15 +192,17 @@ async def create_comment(
             .values(total_comments=Website.total_comments + 1)
         )
 
-    # 4. Auto-queue spam
-    if initial_status == "spam" and spam_result.reasons:
-        db.add(ModerationQueue(
-            comment_id=comment.id,
-            website_id=website.id,
-            reason=", ".join(spam_result.reasons[:3]),
-            flagged_by="spam_filter",
-            severity="high",
-        ))
+    # 4. Auto-queue spam + fire webhook
+    if initial_status == "spam":
+        if spam_result.reasons:
+            db.add(ModerationQueue(
+                comment_id=comment.id,
+                website_id=website.id,
+                reason=", ".join(spam_result.reasons[:3]),
+                flagged_by="spam_filter",
+                severity="high",
+            ))
+        await webhook_service.comment_spam(website, comment, db)
 
     # 5. Notification emails (fire-and-forget)
     ns_result = await db.execute(
@@ -353,14 +356,15 @@ async def flag_comment(
 
     reporter_ip = str(request.client.host) if request.client else None
 
-    db.add(ModerationReport(
+    report = ModerationReport(
         comment_id=comment_id,
         reporter_identifier=payload.reporter_identifier,
         reason=payload.reason,
         description=payload.description,
         reporter_ip=reporter_ip,
         status="pending",
-    ))
+    )
+    db.add(report)
     db.add(ModerationQueue(
         comment_id=comment_id,
         website_id=website.id,
@@ -368,6 +372,8 @@ async def flag_comment(
         flagged_by="user_report",
         severity="medium",
     ))
+    await db.flush()
+    await webhook_service.report_created(website, report, comment, db)
 
     return {"message": "Comment reported successfully"}
 
@@ -408,5 +414,7 @@ async def delete_own_comment(
     # Decrement count only if it was a visible comment
     if was_published:
         await _increment_thread_count(comment.thread_id, db, delta=-1)
+
+    await webhook_service.comment_deleted(website, comment, db)
 
     return {"message": "Comment deleted successfully"}

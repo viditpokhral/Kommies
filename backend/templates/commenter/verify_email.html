@@ -1,0 +1,21 @@
+{% extends "commenter/base.html" %}
+{% block title %}Verify email · Kommies{% endblock %}
+
+{% block content %}
+<div class="k-container" style="max-width:440px;text-align:center;">
+
+  {% if success %}
+    <div style="font-size:56px;margin-bottom:16px;">✅</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:8px;">Email verified!</h1>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:28px;">Your email address has been confirmed. You can now sign in.</p>
+    <a href="{% url 'commenter:login' %}" class="k-btn">Sign in</a>
+  {% else %}
+    <div style="font-size:56px;margin-bottom:16px;">❌</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:8px;">Link expired</h1>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">{{ error|default:"This verification link is invalid or has already been used." }}</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:28px;">Try signing in — if your email still needs verification, you'll see a prompt.</p>
+    <a href="{% url 'commenter:login' %}" class="k-btn">Go to sign in</a>
+  {% endif %}
+
+</div>
+{% endblock %}

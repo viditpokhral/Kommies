@@ -1,0 +1,18 @@
+{% extends "registration/auth_base.html" %}
+{% block title %}Invalid Link — Kommies{% endblock %}
+
+{% block card %}
+<div class="auth-icon">
+    <i class="fas fa-link-slash" style="color:#e8673a;font-size:18px;"></i>
+</div>
+<div class="auth-title">Link expired or invalid</div>
+<p class="auth-sub">
+    This verification link has already been used, has expired, or doesn't exist.
+    If you re-registered with the same email, use the latest link sent to your inbox.
+</p>
+<a href="{% url 'login' %}" class="btn-auth btn-auth-primary">Go to sign in</a>
+<div class="auth-divider"></div>
+<p style="font-size:12px;color:#b8b2a9;text-align:center;">
+    Need a new link? <a href="{% url 'register' %}" style="color:#e8673a;">Register again</a>
+</p>
+{% endblock %}

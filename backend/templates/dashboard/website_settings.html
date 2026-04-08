@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings — {{ website.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="{% url 'dashboard:website-detail' website.id %}">{{ website.name }}</a>
+<span class="sep">/</span>
+<span class="cur">Settings</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 680px;
+    }
+
+    .setting-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 18px 0;
+        border-bottom: 1px solid #e2deda;
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+    }
+
+    .setting-label {
+        min-width: 200px;
+        flex-shrink: 0;
+    }
+
+    .setting-key {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1a1917;
+        margin-bottom: 3px;
+    }
+
+    .setting-desc {
+        font-size: 12px;
+        color: #807b74;
+        line-height: 1.5;
+    }
+
+    .setting-control {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .s-input {
+        display: block;
+        width: 100%;
+        padding: 8px 11px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 13px;
+        color: #1a1917;
+        background: #fff;
+        border: 1px solid #e2deda;
+        border-radius: 6px;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+
+    .s-input:focus {
+        border-color: #e8673a;
+        box-shadow: 0 0 0 3px rgba(232, 103, 58, .12);
+    }
+
+    .s-input[readonly] {
+        background: #f4f3f0;
+        color: #807b74;
+        cursor: default;
+    }
+
+    .s-hint {
+        font-size: 11px;
+        color: #b8b2a9;
+        margin-top: 5px;
+    }
+
+    .toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .toggle {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: #cdc8c2;
+        border-radius: 20px;
+        transition: background .2s;
+    }
+
+    .toggle-slider::before {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        left: 3px;
+        top: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform .2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+    }
+
+    .toggle input:checked+.toggle-slider {
+        background: #e8673a;
+    }
+
+    .toggle input:checked+.toggle-slider::before {
+        transform: translateX(16px);
+    }
+
+    .toggle-label {
+        font-size: 13px;
+        color: #1a1917;
+    }
+
+    .api-key-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .api-key-val {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        background: #f4f3f0;
+        border: 1px solid #e2deda;
+        border-radius: 6px;
+        padding: 8px 12px;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .danger-zone {
+        background: #fdecea;
+        border: 1px solid #f5c6c3;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 8px;
+    }
+
+    .danger-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #b83232;
+        margin-bottom: 6px;
+    }
+
+    .danger-desc {
+        font-size: 13px;
+        color: #4a4640;
+        margin-bottom: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-hd">
+    <div>
+        <h1>Settings</h1>
+        <p>{{ website.name }} — {{ website.domain }}</p>
+    </div>
+</div>
+
+{% if success %}
+<div class="alert alert-success" style="max-width:680px;">
+    <i class="fas fa-check-circle" style="flex-shrink:0;margin-top:1px;"></i> Settings saved.
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger" style="max-width:680px;">
+    <i class="fas fa-exclamation-circle" style="flex-shrink:0;margin-top:1px;"></i> {{ error }}
+</div>
+{% endif %}
+
+<form method="POST" action="{% url 'dashboard:website-settings' website.id %}">
+    {% csrf_token %}
+
+    <div class="card" style="max-width:680px;">
+        <div class="card-header">
+            <div class="card-title">General</div>
+        </div>
+        <div style="padding:4px 20px 8px;">
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <div class="setting-key">Site name</div>
+                    <div class="setting-desc">Displayed in the dashboard.</div>
+                </div>
+                <div class="setting-control">
+                    <input class="s-input" type="text" name="name" value="{{ website.name }}" maxlength="255"
+                        required />
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <div class="setting-key">Domain</div>
+                    <div class="setting-desc">The domain this key is embedded on.</div>
+                </div>
+                <div class="setting-control">
+                    <input class="s-input" type="text" name="domain" value="{{ website.domain }}" maxlength="255"
+                        required />
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <div class="setting-key">Allowed origins</div>
+                    <div class="setting-desc">One origin per line. Leave empty to allow all origins.</div>
+                </div>
+                <div class="setting-control">
+                    <textarea class="s-input" name="allowed_origins" rows="3" style="height:auto;resize:vertical;"
+                        placeholder="https://yourdomain.com&#10;https://www.yourdomain.com">{{ allowed_origins }}</textarea>
+                    <div class="s-hint">Restricts which domains can post comments using your API key.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card" style="max-width:680px;margin-top:16px;">
+        <div class="card-header">
+            <div class="card-title">Commenting</div>
+        </div>
+        <div style="padding:4px 20px 8px;">
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <div class="setting-key">Guest posting</div>
+                    <div class="setting-desc">Allow unregistered visitors to post comments.</div>
+                </div>
+                <div class="setting-control">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" name="allow_anonymous" value="1" {% if allow_anonymous %}checked{% endif %}
+                                endif %} />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Allow anonymous / guest comments</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div style="max-width:680px;margin-top:16px;display:flex;justify-content:flex-end;">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+
+</form>
+
+<!-- API Key -->
+<div class="card" style="max-width:680px;margin-top:24px;">
+    <div class="card-header">
+        <div class="card-title">API Key</div>
+    </div>
+    <div style="padding:18px 20px;">
+        <div class="api-key-row">
+            <span class="api-key-val" id="api-key-val">{{ website.api_key }}</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyKey()">Copy</button>
+            <form method="POST" action="{% url 'dashboard:rotate-keys' website.id %}"
+                onsubmit="return confirm('Rotate API key? Your embed will stop working until you update it.')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm" style="color:#b83232;">Rotate</button>
+            </form>
+        </div>
+        <div class="s-hint" style="margin-top:10px;">
+            Use this key in your <code
+                style="font-family:'IBM Plex Mono',monospace;font-size:11px;">window.kommies</code> config.
+            Rotating generates a new key — update your embed immediately after.
+        </div>
+    </div>
+</div>
+
+<!-- Danger zone -->
+<div style="max-width:680px;margin-top:24px;">
+    <div class="danger-zone">
+        <div class="danger-title">Danger Zone</div>
+        <div class="danger-desc">Deleting this website removes all threads and comments permanently. This cannot be
+            undone.</div>
+        <form method="POST" action="{% url 'dashboard:delete-website' website.id %}"
+            onsubmit="return confirm('Delete {{ website.name }}? All data will be permanently lost.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Delete website</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyKey() {
+        var val = document.getElementById('api-key-val').textContent.trim();
+        navigator.clipboard.writeText(val).then(function () {
+            window.toast('API key copied', 'success');
+        });
+    }
+</script>
+{% endblock %}

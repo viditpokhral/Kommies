@@ -1,0 +1,85 @@
+{% extends "commenter/base.html" %}
+{% block title %}Profile · Kommies{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<div class="k-container">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:18px;margin-bottom:28px;">
+    {% with name=commenter.display_name|default:commenter.email %}
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;
+                font-family:'Syne',sans-serif;font-weight:700;font-size:26px;
+                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      {{ name|first|upper }}
+    </div>
+    <div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;">{{ name }}</h1>
+      <p style="font-size:13px;color:var(--muted);">{{ commenter.email }}
+        {% if commenter.email_verified %}
+          <span style="color:var(--success);font-weight:600;font-size:11px;margin-left:6px;">✓ verified</span>
+        {% else %}
+          <span style="color:#b85c00;font-weight:600;font-size:11px;margin-left:6px;">⚠ unverified</span>
+        {% endif %}
+      </p>
+    </div>
+    {% endwith %}
+  </div>
+
+  {% if commenter.bio %}
+  <div style="font-size:14px;color:var(--muted);margin-bottom:24px;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:8px;">
+    {{ commenter.bio }}
+  </div>
+  {% endif %}
+
+  <!-- Edit form -->
+  <div class="k-card">
+    <div class="k-card-header">
+      <h2 class="k-card-title">Edit profile</h2>
+    </div>
+
+    {% if success %}
+    <div class="k-alert k-alert-success">{{ success }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="k-alert k-alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'commenter:profile' %}">
+      {% csrf_token %}
+
+      <div class="k-field">
+        <label class="k-label">Display name</label>
+        <input class="k-input" type="text" name="display_name"
+               value="{{ commenter.display_name|default:'' }}"
+               minlength="2" maxlength="100" />
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">Bio</label>
+        <textarea class="k-input" name="bio" maxlength="500" placeholder="A little about yourself…">{{ commenter.bio|default:'' }}</textarea>
+        <p class="k-hint">Shown on your public profile. Max 500 characters.</p>
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">Avatar URL</label>
+        <input class="k-input" type="url" name="avatar_url"
+               value="{{ commenter.avatar_url|default:'' }}"
+               placeholder="https://example.com/photo.jpg" />
+        <p class="k-hint">Link to a profile picture. Leave blank to use your initials.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="k-btn">Save changes</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Quick links -->
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+    <a href="{% url 'commenter:history' %}"  class="k-btn-ghost">📝 Comment history</a>
+    <a href="{% url 'commenter:settings' %}" class="k-btn-ghost">⚙ Account settings</a>
+  </div>
+
+</div>
+{% endblock %}

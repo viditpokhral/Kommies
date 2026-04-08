@@ -1,0 +1,44 @@
+{% extends "registration/auth_base.html" %}
+{% block title %}Check Your Inbox — Kommies{% endblock %}
+
+{% block card %}
+<div class="auth-icon info">
+    <i class="fas fa-envelope" style="color:#1a67a0;font-size:18px;"></i>
+</div>
+
+<div class="auth-title">
+    {% if already_verified %}Email already verified
+    {% elif resend_success %}Email resent
+    {% else %}Check your inbox
+    {% endif %}
+</div>
+
+{% if already_verified %}
+<p class="auth-sub">This email is already verified. You can sign in now.</p>
+{% elif resend_success %}
+<p class="auth-sub">A new verification link has been sent to <strong>{{ email }}</strong>.</p>
+{% elif resend_error %}
+<p class="auth-sub">{{ resend_error }}</p>
+{% elif email_error %}
+<p class="auth-sub">Your account was created but we couldn't send a verification email to <strong>{{ email }}</strong>.
+    Try resending below.</p>
+{% else %}
+<p class="auth-sub">
+    We've sent a verification link to <strong>{{ email }}</strong>.
+    Click it to activate your account, then sign in.
+</p>
+{% endif %}
+
+<a href="{% url 'login' %}" class="btn-auth btn-auth-primary">Go to sign in</a>
+
+{% if not already_verified %}
+<form method="POST" action="{% url 'resend_verification' %}">
+    {% csrf_token %}
+    <input type="hidden" name="email" value="{{ email }}">
+    <button type="submit" class="btn-auth btn-auth-secondary" style="width:100%;margin-top:8px;">
+        Resend verification email
+    </button>
+</form>
+{% endif %}
+
+{% endblock %}

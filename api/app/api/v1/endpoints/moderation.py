@@ -49,7 +49,7 @@ async def _decrement_thread_count(thread_id: UUID, db: AsyncSession):
     )
 
 
-# ── FLAGGED / REPORTED QUEUE ──────────────────────────────────────────────────
+# ── FLAGGED / REPORTED QUEUE ───────────────────────────────────────────────────────────────
 
 @router.get("/{website_id}/flagged", response_model=None)
 async def list_flagged_comments(
@@ -63,12 +63,11 @@ async def list_flagged_comments(
     """Comments that have been flagged by users or caught by spam filter."""
     website, _ = access
 
-    # Get comment IDs in moderation queue for this website
     queue_result = await db.execute(
         select(ModerationQueue.comment_id)
         .where(
             ModerationQueue.website_id == website_id,
-            ModerationQueue.action_taken.is_(None),  # not yet actioned
+            ModerationQueue.action_taken.is_(None),
         )
         .distinct()
     )
@@ -101,7 +100,7 @@ async def list_flagged_comments(
     }
 
 
-# ── MODERATION ACTIONS ────────────────────────────────────────────────────────
+# ── MODERATION ACTIONS ────────────────────────────────────────────────────────────────────────────
 
 @router.post("/{website_id}/comments/{comment_id}/action", status_code=200)
 async def moderate_comment(
@@ -112,13 +111,6 @@ async def moderate_comment(
     current_user: SuperUser = Depends(get_current_user),
     access=Depends(require_role("moderator")),
 ):
-    """
-    Moderator actions — removal only, no approval flow.
-    Actions: spam, trash, delete
-    - spam:   marks comment as spam, decrements count, keeps in DB
-    - trash:  soft hides comment, decrements count, keeps in DB  
-    - delete: hard soft-delete, decrements count
-    """
     website, _ = access
 
     valid_actions = ("spam", "trash", "delete")
@@ -145,11 +137,9 @@ async def moderate_comment(
         comment.deleted_by = "moderator"
         comment.status = "deleted"
 
-    # Decrement thread count if it was visible
     if was_published:
         await _decrement_thread_count(comment.thread_id, db)
 
-    # Log moderation action
     db.add(ModerationQueue(
         comment_id=comment.id,
         website_id=website_id,
@@ -161,9 +151,12 @@ async def moderate_comment(
         reviewer_notes=payload.notes,
     ))
 
-    # Webhook
-    if payload.action in ("spam", "delete"):
+    # Fire correct webhook per action
+    if payload.action == "spam":
+        await webhook_service.comment_spam(website, comment, db)
+    elif payload.action == "delete":
         await webhook_service.comment_deleted(website, comment, db)
+    # trash: no webhook event
 
     return {"message": f"Comment {payload.action}ed successfully"}
 
@@ -176,7 +169,6 @@ async def delete_comment(
     current_user: SuperUser = Depends(get_current_user),
     access=Depends(require_role("moderator")),
 ):
-    """Hard delete (soft) — shortcut for moderators."""
     website, _ = access
 
     result = await db.execute(
@@ -201,7 +193,7 @@ async def delete_comment(
     return {"message": "Comment deleted"}
 
 
-# ── BAN MANAGEMENT ────────────────────────────────────────────────────────────
+# ── BAN MANAGEMENT ──────────────────────────────────────────────────────────────────────────────────
 
 @router.post("/{website_id}/bans", status_code=201)
 async def ban_entity(
@@ -211,7 +203,6 @@ async def ban_entity(
     current_user: SuperUser = Depends(get_current_user),
     access=Depends(require_role("moderator")),
 ):
-    """Ban an email, IP, or domain from commenting."""
     _, _ = access
 
     valid_types = ("email", "ip", "domain")
@@ -237,7 +228,6 @@ async def list_bans(
     current_user: SuperUser = Depends(get_current_user),
     access=Depends(require_role("viewer")),
 ):
-    """List all active bans for a website."""
     _, _ = access
 
     result = await db.execute(
@@ -270,7 +260,6 @@ async def unban_entity(
     current_user: SuperUser = Depends(get_current_user),
     access=Depends(require_role("moderator")),
 ):
-    """Unban (deactivate) a ban."""
     _, _ = access
 
     result = await db.execute(
@@ -284,7 +273,7 @@ async def unban_entity(
     return {"message": "Ban removed successfully"}
 
 
-# ── REPORTS ───────────────────────────────────────────────────────────────────
+# ── REPORTS ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 @router.get("/{website_id}/reports", response_model=None)
 async def list_reports(

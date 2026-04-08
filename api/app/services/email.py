@@ -338,5 +338,27 @@ class EmailService:
         return await self._send(email, f"Welcome to {plan_name} \u2014 Kommies", html)
 
 
+    def send_verification_sync(self, email: str, full_name: Optional[str], verify_url: str) -> bool:
+        name = full_name or "there"
+        html = _base_template("Verify your email — Kommies", (
+            _h1("Verify your email address")
+            + _p(f"Hi {name}, welcome to Kommies! One quick step to get started:")
+            + _button("Verify Email", verify_url)
+            + _p(
+                f'Or paste this link into your browser:<br/>'
+                f'<a href="{verify_url}" style="color:#e8673a;font-size:12px;'
+                f'word-break:break-all;">{verify_url}</a>'
+            )
+            + _divider()
+            + _p(
+                '<span style="font-size:12px;color:#b8b2a9;">'
+                'This link expires in 24 hours. '
+                "If you didn't create an account, you can safely ignore this email."
+                '</span>'
+            )
+        ))
+        return self._send_sync(email, "Verify your Kommies account", html)
+    
+
 # Singleton instance
 email_service = EmailService()

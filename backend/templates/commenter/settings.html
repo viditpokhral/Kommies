@@ -1,0 +1,98 @@
+{% extends "commenter/base.html" %}
+{% block title %}Settings · Kommies{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block content %}
+<div class="k-container">
+
+  <h1 class="k-page-title">Account settings</h1>
+
+  {% if success %}
+  <div class="k-alert k-alert-success">{{ success }}</div>
+  {% endif %}
+  {% if error %}
+  <div class="k-alert k-alert-error">{{ error }}</div>
+  {% endif %}
+
+  <!-- Account info (read-only) -->
+  <div class="k-card" style="margin-bottom:16px;">
+    <div class="k-card-header">
+      <h2 class="k-card-title">Account</h2>
+    </div>
+    <div style="display:grid;gap:12px;">
+      <div>
+        <div class="k-label">Email</div>
+        <div style="font-size:14px;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--muted);">
+          {{ commenter.email }}
+          {% if commenter.email_verified %}
+            <span style="color:var(--success);font-size:11px;font-weight:600;margin-left:8px;">✓ verified</span>
+          {% else %}
+            <span style="color:#b85c00;font-size:11px;font-weight:600;margin-left:8px;">⚠ unverified</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="k-label">Username</div>
+        <div style="font-size:14px;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--muted);">
+          @{{ commenter.username }}
+        </div>
+      </div>
+    </div>
+    <p class="k-hint" style="margin-top:12px;">
+      To update your display name or bio, go to <a href="{% url 'commenter:profile' %}" class="k-link">Profile</a>.
+    </p>
+  </div>
+
+  <!-- Change password -->
+  <div class="k-card" style="margin-bottom:16px;">
+    <div class="k-card-header">
+      <h2 class="k-card-title">Change password</h2>
+      <p class="k-card-sub">Your new password must be at least 8 characters.</p>
+    </div>
+
+    <form method="post" action="{% url 'commenter:settings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_password" />
+
+      <div class="k-field">
+        <label class="k-label">Current password</label>
+        <input class="k-input" type="password" name="current_password" autocomplete="current-password" required />
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">New password</label>
+        <input class="k-input" type="password" name="new_password" autocomplete="new-password" minlength="8" required />
+      </div>
+
+      <div class="k-field">
+        <label class="k-label">Confirm new password</label>
+        <input class="k-input" type="password" name="confirm_password" autocomplete="new-password" minlength="8" required />
+      </div>
+
+      <button type="submit" class="k-btn">Update password</button>
+    </form>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="k-card k-danger-card">
+    <div class="k-card-header">
+      <h2 class="k-card-title" style="color:var(--danger);">Delete account</h2>
+      <p class="k-card-sub">This permanently deletes your account. Your comments will remain but be anonymised.</p>
+    </div>
+
+    <form method="post" action="{% url 'commenter:settings' %}"
+          onsubmit="return confirm('This will permanently delete your account. Are you sure?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_account" />
+
+      <div class="k-field">
+        <label class="k-label">Type <strong>DELETE</strong> to confirm</label>
+        <input class="k-input" type="text" name="confirm_delete" placeholder="DELETE" required />
+      </div>
+
+      <button type="submit" class="k-btn k-btn-danger">Delete my account</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

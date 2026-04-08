@@ -1114,6 +1114,16 @@
                 </svg>
                 <span class="sb-label">Members</span>
             </a>
+
+            <a href="{% url 'dashboard:website-settings' current_website.id %}"
+                class="sb-item {% if request.resolver_match.url_name == 'website-settings' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span class="sb-label">Settings</span>
+            </a>
             {% endif %}
 
             {% if is_admin %}
@@ -1153,8 +1163,11 @@
         <div class="sb-foot">
             <div class="sb-user" x-data="{ open: false }" @click="open = !open" @click.outside="open = false">
                 <div class="sb-avatar">
-                    {% if user.first_name %}{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper
-                    }}{% else %}{{ user.email|slice:":1"|upper }}{% endif %}
+                    {% if user.first_name %}
+                    {{ user.first_name|slice:":1"|upper }}
+                    {% else %}
+                    {{ user.email|slice:":1"|upper }}
+                    {% endif %}
                 </div>
                 <div class="sb-uinfo" style="flex:1;min-width:0;">
                     <div class="sb-uname">{{ user.get_full_name|default:user.email }}</div>
@@ -1167,13 +1180,16 @@
 
                 <div class="dd-menu" x-show="open" x-cloak
                     style="bottom:calc(100% + 5px);top:auto;left:0;right:0;min-width:0;">
-                    <a href="/dashboard/account/" class="dd-item">
+                    <a href="{% url 'password_change' %}" class="dd-item">
                         <i class="fas fa-user" style="width:13px;opacity:.6;font-size:12px;"></i> Account
                     </a>
                     <div class="dd-sep"></div>
-                    <a href="/admin/logout/" class="dd-item danger">
-                        <i class="fas fa-sign-out-alt" style="width:13px;font-size:12px;"></i> Sign out
-                    </a>
+                    <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="dd-item danger" style="width:100%;text-align:left;">
+                            <i class="fas fa-sign-out-alt" style="width:13px;font-size:12px;"></i> Sign out
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

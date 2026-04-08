@@ -17,9 +17,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── SECURITY SETTINGS (PRODUCTION-SAFE) ──────────────────────────────────────
 
-DEBUG = os.getenv('DEBUG', 'false').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DEBUG', 'false').lower() in ('true', '1', 'yes')
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured(
@@ -32,7 +32,7 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
     if host.strip()
 ]
 if not ALLOWED_HOSTS and not DEBUG:
@@ -63,6 +63,10 @@ INSTALLED_APPS = [
     # Your apps
     'apps.dashboard',
     'apps.analytics',
+
+    # Commenter Portal is part of the backend for simplicity, but can be split into a separate service if needed
+    'apps.commenter_portal',
+
 ]
 
 MIDDLEWARE = [
@@ -101,7 +105,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # ── DATABASE ──────────────────────────────────────────────────────────────────
 
-DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
 if not DB_PASSWORD and not DEBUG:
     raise ImproperlyConfigured(
         "DB_PASSWORD environment variable must be set when DEBUG=False."
@@ -110,11 +114,11 @@ if not DB_PASSWORD and not DEBUG:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'comment_platform'),
-        'USER': os.getenv('DB_USER', 'comment_platform_admin'),
+        'NAME': os.environ.get('DB_NAME', 'comment_platform'),
+        'USER': os.environ.get('DB_USER', 'comment_platform_admin'),
         'PASSWORD': DB_PASSWORD or 'dev-only-password',
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
         'OPTIONS': {
             'options': '-c search_path=public,auth,core,billing,moderation,analytics'
         }
@@ -169,7 +173,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://api:8000",
 ]
 
-CORS_EXTRA_ORIGINS = os.getenv('CORS_ORIGINS', '')
+CORS_EXTRA_ORIGINS = os.environ.get('CORS_ORIGINS', '')
 if CORS_EXTRA_ORIGINS:
     CORS_ALLOWED_ORIGINS.extend([
         origin.strip()
@@ -182,20 +186,20 @@ CORS_ALLOW_CREDENTIALS = True
 
 # ── FASTAPI INTEGRATION ───────────────────────────────────────────────────────
 
-FASTAPI_URL          = os.getenv('FASTAPI_URL', 'http://localhost:8000')
-FASTAPI_ADMIN_SECRET = os.getenv('FASTAPI_ADMIN_SECRET', '')
+FASTAPI_URL          = os.environ.get('FASTAPI_URL', 'http://localhost:8000')
+FASTAPI_ADMIN_SECRET = os.environ.get('FASTAPI_ADMIN_SECRET', '')
 
 
 # ── EMAIL (SMTP) ──────────────────────────────────────────────────────────────
 
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST          = os.getenv('SMTP_HOST', 'smtp.gmail.com')
-EMAIL_PORT          = int(os.getenv('SMTP_PORT', 587))
+EMAIL_HOST          = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+EMAIL_PORT          = int(os.environ.get('SMTP_PORT', 587))
 EMAIL_USE_TLS       = True
-EMAIL_HOST_USER     = os.getenv('SMTP_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+EMAIL_HOST_USER     = os.environ.get('SMTP_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
 # FROM_EMAIL in .env should match SMTP_USER for Gmail — falls back to SMTP_USER if not set
-DEFAULT_FROM_EMAIL  = os.getenv('FROM_EMAIL', EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL  = os.environ.get('FROM_EMAIL', EMAIL_HOST_USER)
 
 
 # ── DJANGO REST FRAMEWORK ─────────────────────────────────────────────────────
@@ -221,8 +225,8 @@ SILENCED_SYSTEM_CHECKS = ['security.W019']
 # ── PRODUCTION SECURITY ───────────────────────────────────────────────────────
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT            = os.getenv('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
-    SECURE_HSTS_SECONDS            = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_SSL_REDIRECT            = os.environ.get('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
+    SECURE_HSTS_SECONDS            = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000'))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD            = True
     SESSION_COOKIE_SECURE          = True
