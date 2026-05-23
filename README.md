@@ -1,34 +1,276 @@
-# Kommies
+# Kommies 💬  
+### A Scalable, Embeddable Comment Platform for Modern Websites
 
-Kommies is a scalable, embeddable comment platform. It allows websites to seamlessly embed a comment widget while providing a robust backend for comprehensive moderation, analytics, and billing features. 
+Kommies is a powerful and scalable comment platform that allows websites to seamlessly integrate real-time discussion threads through an embeddable widget. It combines a high-performance API backend with a robust admin dashboard for moderation, analytics, subscriptions, and platform management.
 
-The system utilizes a dual-backend architecture, featuring a high-throughput FastAPI service for RESTful API operations and a beautiful Django admin dashboard for platform management.
+Built with a dual-backend architecture using **FastAPI** and **Django**, Kommies is designed for performance, maintainability, and developer experience.
 
-## 🛠️ Tech Stack
-* **Language**: Python >= 3.13
-* **Backend API**: FastAPI (>=0.128.5) paired with Uvicorn (>=0.40.0)
-* **Admin Dashboard**: Django (>=6.0.2)
-* **Database**: PostgreSQL 14
-* **ORM**: SQLAlchemy (>=2.0.46) configured with async support
-* **Package Management**: Poetry
+---
 
-## ✨ Key Features
-* **Embeddable Widget Integration**: Websites can seamlessly integrate comment threads using rotatable API keys.
-* **Advanced Moderation**: A dedicated moderation queue allows administrators to quickly approve, reject, or flag comments as spam, including bulk actions.
-* **Analytics**: Provides deep insights such as 30-day comment trends, top thread engagement, and daily API usage.
-* **Billing & Subscriptions**: Includes out-of-the-box support for subscription plans and invoicing management.
-* **Security & Authentication**: Protects user data with JWT-based authentication, refresh tokens, rate limiting, and bcrypt password hashing.
+## ✨ Features
 
-## 🏗️ Architecture Overview
-The platform operates on a shared-database model leveraging two distinct services:
-1. **FastAPI Backend (`/api`)**: Serves on Port 8000 and is responsible for authentication endpoints, core comment management logic, public API requests for widgets, and billing.
-2. **Django Admin (`/backend`)**: Serves on Port 8001 and reads from the shared unmanaged database to provide a color-coded admin dashboard, moderation queue interface, and analytics charts.
-3. **PostgreSQL Database**: A centralized store for core platform models, authentication details, and moderation data.
+- 🔌 **Embeddable Comment Widget**
+  - Easily integrate comments into any website
+  - API key based authentication
+  - Rotatable keys for improved security
 
-## 🚀 Getting Started
+- 🛡️ **Advanced Moderation**
+  - Dedicated moderation queue
+  - Approve / reject / mark spam
+  - Bulk moderation actions
+  - Color-coded moderation dashboard
 
-### Option 1: Docker (Recommended)
-The quickest way to spin up the entire application stack is via Docker Compose. 
-1. Build and start the services in detached mode:
-   ```bash
-   docker-compose up -d
+- 📊 **Analytics Dashboard**
+  - 30-day comment trends
+  - Daily API usage insights
+  - Top-performing discussion threads
+  - Engagement metrics
+
+- 💳 **Billing & Subscriptions**
+  - Subscription plan management
+  - Invoice support
+  - Scalable SaaS-ready architecture
+
+- 🔐 **Authentication & Security**
+  - JWT authentication
+  - Refresh tokens
+  - Rate limiting
+  - bcrypt password hashing
+  - Secure API key handling
+
+- ⚡ **High Performance**
+  - Async SQLAlchemy support
+  - FastAPI-powered REST API
+  - PostgreSQL optimized architecture
+
+---
+
+# 🏗️ Architecture Overview
+
+Kommies uses a **shared database dual-service architecture**.
+
+```text
+                ┌────────────────────┐
+                │   Client Website   │
+                │  (Embedded Widget) │
+                └─────────┬──────────┘
+                          │
+                          ▼
+                ┌────────────────────┐
+                │   FastAPI Backend  │
+                │      /api          │
+                │     Port 8000      │
+                └─────────┬──────────┘
+                          │
+          ┌───────────────┴────────────────┐
+          ▼                                ▼
+ ┌─────────────────┐              ┌─────────────────┐
+ │ PostgreSQL 14   │◄────────────►│ Django Admin    │
+ │ Shared Database │              │    /backend     │
+ └─────────────────┘              │    Port 8001    │
+                                  └─────────────────┘
+```
+
+---
+
+# 🛠️ Tech Stack
+
+| Category | Technology |
+|---|---|
+| Language | Python >= 3.13 |
+| Backend API | FastAPI + Uvicorn |
+| Admin Dashboard | Django |
+| Database | PostgreSQL 14 |
+| ORM | SQLAlchemy Async |
+| Package Manager | Poetry |
+| Authentication | JWT + bcrypt |
+
+---
+
+# 📂 Project Structure
+
+```bash
+kommies/
+│
+├── api/                 # FastAPI backend
+├── backend/             # Django admin dashboard
+├── widget/              # Embeddable comment widget
+├── shared/              # Shared models & utilities
+├── migrations/          # Database migrations
+├── docker/              # Docker configurations
+├── scripts/             # Utility scripts
+└── tests/               # Test suite
+```
+
+---
+
+# 🚀 Getting Started
+
+## Option 1 — Docker (Recommended)
+
+The quickest way to start the entire stack.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/kommies.git
+cd kommies
+```
+
+### 2. Start Services
+
+```bash
+docker-compose up -d
+```
+
+### 3. Access Services
+
+| Service | URL |
+|---|---|
+| FastAPI API | http://localhost:8000 |
+| Django Admin | http://localhost:8001 |
+| API Docs | http://localhost:8000/docs |
+
+---
+
+# ⚙️ Local Development Setup
+
+## 1. Install Poetry
+
+```bash
+pip install poetry
+```
+
+## 2. Install Dependencies
+
+```bash
+poetry install
+```
+
+## 3. Configure Environment Variables
+
+Create a `.env` file:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/kommies
+SECRET_KEY=your-secret-key
+JWT_SECRET=your-jwt-secret
+```
+
+## 4. Run FastAPI Backend
+
+```bash
+poetry run uvicorn api.main:app --reload --port 8000
+```
+
+## 5. Run Django Admin
+
+```bash
+poetry run python backend/manage.py runserver 8001
+```
+
+---
+
+# 🔑 API Authentication
+
+Kommies uses JWT-based authentication.
+
+### Obtain Access Token
+
+```http
+POST /api/auth/login
+```
+
+### Example Response
+
+```json
+{
+  "access_token": "your-token",
+  "refresh_token": "your-refresh-token"
+}
+```
+
+---
+
+# 📊 Analytics Features
+
+- Daily API request tracking
+- Comment activity visualization
+- Top engaged discussion threads
+- Moderation statistics
+- Subscription insights
+
+---
+
+# 🔌 Embedding the Widget
+
+Add the widget script to your website:
+
+```html
+<script
+  src="https://cdn.kommies.dev/widget.js"
+  data-api-key="YOUR_API_KEY">
+</script>
+```
+
+---
+
+# 🧪 Running Tests
+
+```bash
+poetry run pytest
+```
+
+---
+
+# 🐳 Docker Services
+
+| Container | Purpose |
+|---|---|
+| api | FastAPI application |
+| backend | Django admin |
+| postgres | PostgreSQL database |
+| nginx | Reverse proxy (optional) |
+
+---
+
+# 📈 Future Roadmap
+
+- Real-time comments with WebSockets
+- AI-powered spam detection
+- Multi-tenant organizations
+- Comment reactions & replies
+- Email notifications
+- OAuth providers
+- Theme customization support
+
+---
+
+# 👥 Authors
+
+- Shashwat Acharya
+- Vidit Pokhral
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+# ⭐ Support the Project
+
+If you like Kommies, consider giving the repository a star ⭐ to support development and help others discover the project.
